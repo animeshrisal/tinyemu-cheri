@@ -35,7 +35,7 @@
 #elif defined(__HAIKU__)
 #include <OS.h> // system_time()
 #else
-#error "
+#error "Unknown OS"
 #endif
 
 #include "cutils.h"
@@ -854,6 +854,12 @@ static int csr_read(RISCVCPUState *s, target_ulong *pval, uint32_t csr,
     case 0x344:
         val = s->mip;
         break;
+    case 0x3a0 ... 0x3a3: /* pmpcfg0..3 */
+        val = 0; /* not implemented */
+        break;
+    case 0x3b0 ... 0x3bf: /* pmpaddr0..15 */
+        val = 0; /* not implemented */
+        break;
     case 0xb00: /* mcycle */
     case 0xb02: /* minstret */
         val = (int64_t)s->insn_counter;
@@ -1034,6 +1040,12 @@ static int csr_write(RISCVCPUState *s, uint32_t csr, target_ulong val)
     case 0x344:
         mask = MIP_SSIP | MIP_STIP;
         s->mip = (s->mip & ~mask) | (val & mask);
+        break;
+    case 0x3a0 ... 0x3a3: /* pmpcfg0..3 */
+        /* not implemented */
+        break;
+    case 0x3b0 ... 0x3bf: /* pmpaddr0..15 */
+        /* not implemented */
         break;
     default:
 #ifdef DUMP_INVALID_CSR

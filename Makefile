@@ -48,7 +48,8 @@ CC=$(CROSS_PREFIX)gcc
 STRIP=$(CROSS_PREFIX)strip
 CFLAGS=-O2 -Wall -g -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -MMD
 CFLAGS+=-D_GNU_SOURCE -DCONFIG_VERSION=\"$(shell cat VERSION)\"
-LDFLAGS=
+CFLAGS+=-I/opt/homebrew/include
+LDFLAGS=-L/opt/homebrew/lib
 
 bindir=/usr/local/bin
 INSTALL=install
@@ -84,7 +85,7 @@ EMU_LIBS+=-lwsock32
 endif # CONFIG_WIN32
 endif # CONFIG_FS_NET
 ifdef CONFIG_SDL
-EMU_LIBS+=-L/opt/local/lib -lSDL2
+EMU_LIBS+=-L/opt/homebrew/lib -lSDL2
 EMU_OBJS+=sdl.o
 CFLAGS+=-DCONFIG_SDL
 ifdef CONFIG_WIN32
