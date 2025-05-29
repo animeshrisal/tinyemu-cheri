@@ -1,3 +1,4 @@
 *.o
 bbl64.bin
 *.d
+test.bin
