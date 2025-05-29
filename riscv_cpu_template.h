@@ -200,6 +200,7 @@ static inline uintx_t glue(mulhsu, XLEN)(intx_t a, uintx_t b)
 static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                                                    int n_cycles1)
 {
+
     uint32_t opcode, insn, rd, rs1, rs2, funct3;
     int32_t imm, cond, err;
     target_ulong addr, val, val2;
@@ -298,7 +299,14 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 #endif
         }
 #endif
+
+        if(insn != 0) {
+        }
         opcode = insn & 0x7f;
+
+                if(insn != 0) {
+        // printf("opcode = %x\n", opcode);
+        }
         rd = (insn >> 7) & 0x1f;
         rs1 = (insn >> 15) & 0x1f;
         rs2 = (insn >> 20) & 0x1f;
@@ -1282,6 +1290,19 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     if (insn & 0x000fff80)
                         goto illegal_insn;
                     s->pending_exception = CAUSE_USER_ECALL + s->priv;
+#if 0
+fprintf(stderr, "*** ECALLLLL ***\n");
+    for(int i = 1; i < 32; i++) {
+        int cols = 8;
+        fprintf(stderr, "%-3s=", reg_name[i]); 
+        fprintf(stderr, "%08x", s->reg[i]);
+        if ((i & (cols - 1)) == (cols - 1))
+            fprintf(stderr, "\n");
+        else
+            fprintf(stderr, " ");
+    }
+fprintf(stderr, "*** ECALLEND ***\n");
+#endif
                     goto exception;
                 case 0x001: /* ebreak */
                     if (insn & 0x000fff80)
@@ -1726,11 +1747,11 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
  done_interp:
 the_end:
     s->insn_counter = GET_INSN_COUNTER();
-#if 0
-    printf("done interp %lx int=%x mstatus=%lx prv=%d\n",
-           (uint64_t)s->insn_counter, s->mip & s->mie, (uint64_t)s->mstatus,
-           s->priv);
-#endif
+
+    // printf("done interp %lx int=%x mstatus=%lx prv=%d mcause=%d sepc=%d\n",
+    //        (uint64_t)s->insn_counter, s->mip & s->mie, (uint64_t)s->mstatus,
+    //        s->priv, s->mcause, s->mepc);
+
 }
 
 #undef uintx_t

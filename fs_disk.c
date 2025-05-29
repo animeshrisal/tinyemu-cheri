@@ -27,16 +27,14 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <stdarg.h>
-#if !defined(__HAIKU__)
-// #include <sys/statfs.h>
+#ifdef __APPLE__
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
+#include <sys/statfs.h>
+#include <sys/sysmacros.h>
 #endif
 #include <sys/stat.h>
-#if !defined(__HAIKU__)
-// #include <sys/sysmacros.h>
-#endif
-     #include <sys/param.h>
-     #include <sys/mount.h>
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -151,7 +149,6 @@ static void stat_to_qid(FSQID *qid, const struct stat *st)
 
 static void fs_statfs(FSDevice *fs1, FSStatFS *st)
 {
-#if !defined(__HAIKU__)
     FSDeviceDisk *fs = (FSDeviceDisk *)fs1;
     struct statfs st1;
     statfs(fs->root_path, &st1);
@@ -161,7 +158,6 @@ static void fs_statfs(FSDevice *fs1, FSStatFS *st)
     st->f_bavail = st1.f_bavail;
     st->f_files = st1.f_files;
     st->f_ffree = st1.f_ffree;
-#endif
 }
 
 static char *compose_path(const char *path, const char *name)
@@ -321,10 +317,6 @@ static int fs_readdir(FSDevice *fs, FSFile *f, uint64_t offset,
         if ((pos + len) > count)
             break;
         offset = telldir(f->u.dirp);
-#if defined(__HAIKU__)
-            d_type = 0;
-            type = P9_QTFILE;
-#else
         d_type = de->d_type;
         if (d_type == DT_UNKNOWN) {
             char *path;
@@ -343,7 +335,6 @@ static int fs_readdir(FSDevice *fs, FSFile *f, uint64_t offset,
             type = P9_QTSYMLINK;
         else
             type = P9_QTFILE;
-#endif
         buf[pos++] = type;
         put_le32(buf + pos, 0); /* version */
         pos += 4;
@@ -414,7 +405,14 @@ static int fs_stat(FSDevice *fs, FSFile *f, FSStat *st)
     st->st_size = st1.st_size;
     st->st_blksize = st1.st_blksize;
     st->st_blocks = st1.st_blocks;
-#if 0
+#ifdef __APPLE__
+    st->st_atime_sec = st1.st_atimespec.tv_sec;
+    st->st_atime_nsec = st1.st_atimespec.tv_nsec;
+    st->st_mtime_sec = st1.st_mtimespec.tv_sec;
+    st->st_mtime_nsec = st1.st_mtimespec.tv_nsec;
+    st->st_ctime_sec = st1.st_ctimespec.tv_sec;
+    st->st_ctime_nsec = st1.st_ctimespec.tv_nsec;
+#else
     st->st_atime_sec = st1.st_atim.tv_sec;
     st->st_atime_nsec = st1.st_atim.tv_nsec;
     st->st_mtime_sec = st1.st_mtim.tv_sec;
@@ -523,9 +521,6 @@ static int fs_mknod(FSDevice *fs, FSQID *qid,
              FSFile *f, const char *name, uint32_t mode, uint32_t major,
              uint32_t minor, uint32_t gid)
 {
-#if defined(__HAIKU__)
-    return -errno_to_p9(ENOTSUP);
-#else
     char *path;
     struct stat st;
     
@@ -541,7 +536,6 @@ static int fs_mknod(FSDevice *fs, FSQID *qid,
     free(path);
     stat_to_qid(qid, &st);
     return 0;
-#endif
 }
 
 static int fs_readlink(FSDevice *fs, char *buf, int buf_size, FSFile *f)

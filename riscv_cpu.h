@@ -55,6 +55,7 @@ typedef struct {
     uint32_t (*riscv_cpu_get_misa)(RISCVCPUState *s);
     void (*riscv_cpu_flush_tlb_write_range_ram)(RISCVCPUState *s,
                                                 uint8_t *ram_ptr, size_t ram_size);
+    uint64_t (*riscv_cpu_get_stimecmp)(RISCVCPUState *s);
 } RISCVCPUClass;
 
 typedef struct {
@@ -113,6 +114,11 @@ static inline void riscv_cpu_flush_tlb_write_range_ram(RISCVCPUState *s,
 {
     const RISCVCPUClass *c = ((RISCVCPUCommonState *)s)->class_ptr;
     c->riscv_cpu_flush_tlb_write_range_ram(s, ram_ptr, ram_size);
+}
+static inline uint64_t riscv_cpu_get_stimecmp(RISCVCPUState *s)
+{
+    const RISCVCPUClass *c = ((RISCVCPUCommonState *)s)->class_ptr;
+    return c->riscv_cpu_get_stimecmp(s);
 }
 
 #endif /* RISCV_CPU_H */

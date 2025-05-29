@@ -230,6 +230,11 @@ struct RISCVCPUState {
     uint64_t satp; /* currently 64 bit physical addresses max */
 #endif
     uint32_t scounteren;
+#if MAX_XLEN == 32
+    uint32_t stimecmp;
+#else
+    uint64_t stimecmp;
+#endif
 
     target_ulong load_res; /* for atomic LR/SC */
 
@@ -238,6 +243,7 @@ struct RISCVCPUState {
     TLBEntry tlb_read[TLB_SIZE];
     TLBEntry tlb_write[TLB_SIZE];
     TLBEntry tlb_code[TLB_SIZE];
+
 };
 
 #define target_read_slow glue(glue(riscv, MAX_XLEN), _read_slow)

@@ -36,7 +36,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #endif
-#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__HAIKU__)
+#if !defined(_WIN32) && !defined(__APPLE__)
 #include <net/if.h>
 #include <linux/if_tun.h>
 #endif
@@ -355,7 +355,7 @@ static BlockDevice *block_device_init(const char *filename,
     return bs;
 }
 
-#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__HAIKU__) 
+#if !defined(_WIN32) && !defined(__APPLE__)
 
 typedef struct {
     int fd;
@@ -433,9 +433,9 @@ static EthernetDevice *tun_open(const char *ifname)
         return NULL;
     }
     memset(&ifr, 0, sizeof(ifr));
-//    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
     pstrcpy(ifr.ifr_name, sizeof(ifr.ifr_name), ifname);
-//    ret = ioctl(fd, TUNSETIFF, (void *) &ifr);
+    ret = ioctl(fd, TUNSETIFF, (void *) &ifr);
     if (ret != 0) {
         fprintf(stderr, "Error: could not configure /dev/net/tun\n");
         close(fd);
@@ -459,7 +459,7 @@ static EthernetDevice *tun_open(const char *ifname)
     return net;
 }
 
-#endif /* !_WIN32 && !__APPLE__ && !__HAIKU__ */
+#endif /* !_WIN32 && !__APPLE__ */
 
 #ifdef CONFIG_SLIRP
 
@@ -559,8 +559,13 @@ void virt_machine_run(VirtMachine *m)
     FD_ZERO(&wfds);
     FD_ZERO(&efds);
     fd_max = -1;
+    stdin_fd = 0;
+    FD_SET(stdin_fd, &rfds);
+    fd_max = stdin_fd;
+
+#if 0 // no virtio console, we use UART emulation
 #ifndef _WIN32
-    if (m->console_dev && virtio_console_can_write_data(m->console_dev)) {
+    if (0 /*m->console_dev && virtio_console_can_write_data(m->console_dev)*/) {
         STDIODevice *s = m->console->opaque;
         stdin_fd = s->stdin_fd;
         FD_SET(stdin_fd, &rfds);
@@ -573,6 +578,7 @@ void virt_machine_run(VirtMachine *m)
             s->resize_pending = FALSE;
         }
     }
+#endif
 #endif
     if (m->net) {
         m->net->select_fill(m->net, &fd_max, &rfds, &wfds, &efds, &delay);
@@ -588,23 +594,35 @@ void virt_machine_run(VirtMachine *m)
     }
     if (ret > 0) {
 #ifndef _WIN32
+        if (FD_ISSET(stdin_fd, &rfds)) {
+            uint8_t buf[128];
+	    int ret, len = sizeof(buf);
+            ret = m->console->read_data(m->console->opaque, buf, len);
+	    uart_rx_data(m, buf, ret);
+        }
+#if 0
         if (m->console_dev && FD_ISSET(stdin_fd, &rfds)) {
             uint8_t buf[128];
-            int ret, len;
-            len = virtio_console_get_write_len(m->console_dev);
-            len = min_int(len, sizeof(buf));
+
+            int ret, len = sizeof(buf), ulen = uart_can_rx(m);
+	    if (virtio_console_can_write_data(m->console_dev))
+		len = min_int(len, virtio_console_get_write_len(m->console_dev));
+	    if (ulen)
+		len = min_int(len, ulen);
             ret = m->console->read_data(m->console->opaque, buf, len);
             if (ret > 0) {
-                virtio_console_write_data(m->console_dev, buf, ret);
+		uart_rx_data(m, buf, ret);
+		if (virtio_console_can_write_data(m->console_dev))
+		    virtio_console_write_data(m->console_dev, buf, ret);
             }
         }
+#endif
 #endif
     }
 
 #ifdef CONFIG_SDL
     sdl_refresh(m);
 #endif
-    
     virt_machine_interp(m, MAX_EXEC_CYCLE);
 }
 
@@ -624,7 +642,7 @@ static struct option options[] = {
 void help(void)
 {
     printf("temu version " CONFIG_VERSION ", Copyright (c) 2016-2018 Fabrice Bellard\n"
-           "usage: riscvemu [options] config_file\n"
+           "usage: temu [options] config_file\n"
            "options are:\n"
            "-m ram_size       set the RAM size in MB\n"
            "-rw               allow write access to the disk image (default=snapshot)\n"
@@ -776,7 +794,7 @@ int main(int argc, char **argv)
         } else
 #endif
         {
-#if defined(_WIN32)
+#ifdef _WIN32
             fprintf(stderr, "Filesystem access not supported yet\n");
             exit(1);
 #else
@@ -801,7 +819,7 @@ int main(int argc, char **argv)
                 exit(1);
         } else
 #endif
-#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__HAIKU__)
+#if !defined(_WIN32) && !defined(__APPLE__)
         if (!strcmp(p->tab_eth[i].driver, "tap")) {
             p->tab_eth[i].net = tun_open(p->tab_eth[i].ifname);
             if (!p->tab_eth[i].net)
@@ -818,14 +836,17 @@ int main(int argc, char **argv)
 #ifdef CONFIG_SDL
     if (p->display_device) {
         sdl_init(p->width, p->height);
-    }
+        p->console = console_init(TRUE);
+    } else
 #endif
+    {
 #ifdef _WIN32
-    fprintf(stderr, "Console not supported yet\n");
-    exit(1);
+        fprintf(stderr, "Console not supported yet\n");
+        exit(1);
 #else
-    p->console = console_init(allow_ctrlc);
+        p->console = console_init(allow_ctrlc);
 #endif
+    }
     p->rtc_real_time = TRUE;
 
     s = virt_machine_init(p);

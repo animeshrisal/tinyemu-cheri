@@ -277,6 +277,7 @@ static void sdl_handle_key_event(const SDL_KeyboardEvent *ev, VirtMachine *m)
 {
     int keycode, keypress;
 
+// fprintf(stderr, "sdl key: %x\n", sdl_get_keycode(ev));
     keycode = sdl_get_keycode(ev);
     if (keycode) {
         if (keycode == 0x3a || keycode ==0x45) {

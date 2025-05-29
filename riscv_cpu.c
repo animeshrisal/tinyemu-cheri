@@ -28,15 +28,7 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <fcntl.h>
-
-#if defined (__APPLE__) || defined(__POSIX__)
-#define _POSIX_C_SOURCE 200809L
 #include <time.h>
-#elif defined(__HAIKU__)
-#include <OS.h> // system_time()
-#else
-#error "Unknown OS"
-#endif
 
 #include "cutils.h"
 #include "iomem.h"
@@ -50,12 +42,12 @@
 #endif
 
 #define DUMP_INVALID_MEM_ACCESS
-//#define DUMP_MMU_EXCEPTIONS
-//#define DUMP_INTERRUPTS
-//#define DUMP_INVALID_CSR
-//#define DUMP_EXCEPTIONS
-//#define DUMP_CSR
-//#define CONFIG_LOGFILE
+#define DUMP_MMU_EXCEPTIONS
+#define DUMP_INTERRUPTS
+#define DUMP_INVALID_CSR 1
+#define DUMP_EXCEPTIONS
+// #define DUMP_CSR
+#define CONFIG_LOGFILE
 
 #include "riscv_cpu_priv.h"
 
@@ -154,6 +146,7 @@ static void dump_regs(RISCVCPUState *s)
 
 static __attribute__((unused)) void cpu_abort(RISCVCPUState *s)
 {
+    fprintf(stderr, "*** cpu_abort\n");
     dump_regs(s);
     abort();
 }
@@ -384,11 +377,9 @@ int target_read_slow(RISCVCPUState *s, mem_uint_t *pval,
         pr = get_phys_mem_range(s->mem_map, paddr);
         if (!pr) {
 #ifdef DUMP_INVALID_MEM_ACCESS
-            printf("target_read_slow: invalid physical address 0x");
-            print_target_ulong(paddr);
-            printf(", PC: ");
-            print_target_ulong(s->pc);
-            printf("\n");
+//            printf("target_read_slow: invalid physical address 0x");
+//            print_target_ulong(paddr);
+//            printf("\n");
 #endif
             return 0;
         } else if (pr->is_ram) {
@@ -473,12 +464,9 @@ int target_write_slow(RISCVCPUState *s, target_ulong addr,
         pr = get_phys_mem_range(s->mem_map, paddr);
         if (!pr) {
 #ifdef DUMP_INVALID_MEM_ACCESS
-            printf("target_write_slow: invalid physical address 0x");
-            print_target_ulong(paddr);
-            printf(", PC: ");
-            print_target_ulong(s->pc);
-            printf("\n");
-            exit(1);
+//            printf("target_write_slow: invalid physical address 0x");
+//            print_target_ulong(paddr);
+//            printf("\n");
 #endif
         } else if (pr->is_ram) {
             phys_mem_set_dirty_bit(pr, paddr - pr->addr);
@@ -757,18 +745,6 @@ static int csr_read(RISCVCPUState *s, target_ulong *pval, uint32_t csr,
         }
         val = (int64_t)s->insn_counter;
         break;
-    case 0xc01: /* utime */
-        {
-#if defined (__APPLE__) || defined(__POSIX__)
-            struct timespec t;
-
-            clock_gettime(CLOCK_REALTIME, &t);
-            val = t.tv_sec * 1000000 + t.tv_nsec / 1000;
-#else
-            val = system_time(); // XXX
-#endif
-        }
-        break;
     case 0xc80: /* mcycleh */
     case 0xc82: /* minstreth */
         if (s->cur_xlen != 32)
@@ -814,6 +790,10 @@ static int csr_read(RISCVCPUState *s, target_ulong *pval, uint32_t csr,
     case 0x144: /* sip */
         val = s->mip & s->mideleg;
         break;
+    case 0x14d: // stimecmp
+        val = s->stimecmp;
+	riscv_cpu_reset_mip(s, MIP_STIP);
+        break;
     case 0x180:
         val = s->satp;
         break;
@@ -838,6 +818,9 @@ static int csr_read(RISCVCPUState *s, target_ulong *pval, uint32_t csr,
         break;
     case 0x306:
         val = s->mcounteren;
+        break;
+    case 0x30a: // menvcfg
+        val = 0;
         break;
     case 0x340:
         val = s->mscratch;
@@ -869,6 +852,15 @@ static int csr_read(RISCVCPUState *s, target_ulong *pval, uint32_t csr,
         if (s->cur_xlen != 32)
             goto invalid_csr;
         val = s->insn_counter >> 32;
+        break;
+    case 0xc01: // time
+        {
+#define RTC_FREQ 10000000
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        val = (uint64_t)ts.tv_sec * RTC_FREQ + (ts.tv_nsec / (1000000000 / RTC_FREQ));
+// printf("R time: %llu\n", val);
+        }
         break;
     case 0xf14:
         val = s->mhartid;
@@ -914,6 +906,7 @@ static int csr_write(RISCVCPUState *s, uint32_t csr, target_ulong val)
 {
     target_ulong mask;
 
+// fprintf(stderr, "### write csr 0x%0x with 0x%x\n", csr, val);
 #if defined(DUMP_CSR)
     printf("csr_write: csr=0x%03x val=0x", csr);
     print_target_ulong(val);
@@ -963,6 +956,10 @@ static int csr_write(RISCVCPUState *s, uint32_t csr, target_ulong val)
     case 0x144: /* sip */
         mask = s->mideleg;
         s->mip = (s->mip & ~mask) | (val & mask);
+        break;
+    case 0x14d: // stimecmp
+        s->stimecmp = (volatile target_ulong) val;
+//        fprintf(stderr, "stimecmp set to %llu = %llu, s = %p\n", val, s->stimecmp, &s->stimecmp);
         break;
     case 0x180:
         /* no ASID implemented */
@@ -1024,6 +1021,8 @@ static int csr_write(RISCVCPUState *s, uint32_t csr, target_ulong val)
         break;
     case 0x306:
         s->mcounteren = val & COUNTEREN_MASK;
+        break;
+    case 0x30a: // menvcfg
         break;
     case 0x340:
         s->mscratch = val;
@@ -1113,7 +1112,7 @@ static void raise_exception2(RISCVCPUState *s, uint32_t cause,
             print_target_ulong(tval);
 #endif
             log_printf("\n");
-            dump_regs(s);
+            // dump_regs(s);
         }
     }
 #endif
@@ -1324,6 +1323,13 @@ static BOOL glue(riscv_cpu_get_power_down, MAX_XLEN)(RISCVCPUState *s)
     return s->power_down_flag;
 }
 
+static uint64_t glue(riscv_cpu_get_stimecmp, MAX_XLEN)(RISCVCPUState *s)
+{
+//    printf("P: %p S: %llu\n", s, s->stimecmp);
+
+    return s->stimecmp;
+}
+
 static RISCVCPUState *glue(riscv_cpu_init, MAX_XLEN)(PhysMemoryMap *mem_map)
 {
     RISCVCPUState *s;
@@ -1381,6 +1387,7 @@ const RISCVCPUClass glue(riscv_cpu_class, MAX_XLEN) = {
     glue(riscv_cpu_get_power_down, MAX_XLEN),
     glue(riscv_cpu_get_misa, MAX_XLEN),
     glue(riscv_cpu_flush_tlb_write_range_ram, MAX_XLEN),
+    glue(riscv_cpu_get_stimecmp, MAX_XLEN),
 };
 
 #if CONFIG_RISCV_MAX_XLEN == MAX_XLEN

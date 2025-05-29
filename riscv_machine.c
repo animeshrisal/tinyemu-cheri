@@ -35,9 +35,14 @@
 #include "cutils.h"
 #include "iomem.h"
 #include "riscv_cpu.h"
-#include "uart.h"
+
+// #include "riscv_cpu_priv.h"
 #include "virtio.h"
 #include "machine.h"
+#include "elf.h"
+#include "compress.h"
+
+#define UART_RX_BUFSIZE 16
 
 /* RISCV machine */
 
@@ -57,28 +62,40 @@ typedef struct RISCVMachine {
     /* HTIF */
     uint64_t htif_tohost, htif_fromhost;
 
-    SerialState *serial_state;
+    /* UART */
+    uint8_t uart_dll;
+    uint8_t uart_dlm;
+    uint8_t uart_ier;
+    uint8_t uart_fcr;
+    uint8_t uart_lcr;
+    uint8_t uart_mcr;
+    uint8_t uart_scr;
+    uint8_t uart_rx_pending, uart_tx_pending;
+    int     uart_rx_head, uart_rx_tail;
+    uint8_t uart_rx_buf[UART_RX_BUFSIZE];
+#if defined(UART_OUT_DEBUG)
+    int     uart_pos;
+#endif
+
     VIRTIODevice *keyboard_dev;
     VIRTIODevice *mouse_dev;
 
     int virtio_count;
 } RISCVMachine;
 
-#define LOW_RAM_SIZE   0x00010000 /* 64KB */
-#define RAM_BASE_ADDR  0x80000000
+#define LOW_RAM_SIZE    0x00010000 /* 64KB */
+#define RAM_BASE_ADDR   0x80000000
 #define CLINT_BASE_ADDR 0x02000000
 #define CLINT_SIZE      0x000c0000
-#define HTIF_BASE_ADDR 0x40008000
-#define IDE_BASE_ADDR  0x40009000
+#define DEFAULT_HTIF_BASE_ADDR 0x40008000
 #define VIRTIO_BASE_ADDR 0x40010000
 #define VIRTIO_SIZE      0x1000
-#define VIRTIO_IRQ       1
+#define VIRTIO_IRQ       2
 #define PLIC_BASE_ADDR 0x40100000
 #define PLIC_SIZE      0x00400000
+#define UART_BASE_ADDR 0x40800000
+#define UART_IRQ       1
 #define FRAMEBUFFER_BASE_ADDR 0x41000000
-#define UART_BASE_ADDR 0x10000000
-#define UART_SIZE 0x100
-#define UART_IRQ 10
 
 #define RTC_FREQ 10000000
 #define RTC_FREQ_DIV 16 /* arbitrary, relative to CPU freq to have a
@@ -88,6 +105,7 @@ static uint64_t rtc_get_real_time(RISCVMachine *s)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
+// printf("G: %lu\n", (uint64_t)ts.tv_sec * RTC_FREQ + (ts.tv_nsec / (1000000000 / RTC_FREQ)));
     return (uint64_t)ts.tv_sec * RTC_FREQ +
         (ts.tv_nsec / (1000000000 / RTC_FREQ));
 }
@@ -100,8 +118,195 @@ static uint64_t rtc_get_time(RISCVMachine *m)
     } else {
         val = riscv_cpu_get_cycles(m->cpu_state) / RTC_FREQ_DIV;
     }
-    //    printf("rtc_time=%" PRId64 "\n", val);
+    // printf("rtc_time=%" PRId64 "\n", val);
     return val;
+}
+
+
+/***************************   UART   ***************************/
+
+#define UART_REG_DATA  0 /* (DLAB=0) RBR=rx buffer / THR=tx holding */
+                         /* (DLAB=1) DLL=divisor latch (lsbyte) */
+#define UART_REG_IER   1 /* (DLAB=0) interrupt enable (bit 0=rx avail, 1=tx empty,
+                                     2=rx line status, 3=modem status) */
+                         /* (DLAB=1) DLM=divisor latch (msbyte) */
+#define UART_REG_IIR   2 /* (read)  interrupt id/cause */
+#define UART_REG_FCR   2 /* (write) FIFO control */
+#define UART_REG_LCR   3 /* line control (bit 7=DLAB) */
+#define UART_REG_MCR   4 /* modem control */
+#define UART_REG_LSR   5 /* line status (bit 0=rx avail, 5=tx buf empty, 6=tx empty/done) */
+#define UART_REG_MSR   6 /* modem status */
+#define UART_REG_SCR   7 /* scratch */
+
+#define UART_LCR_DLAB  0x80
+
+static void uart_set_irq(RISCVMachine *s)
+{
+// fprintf(stderr, "uart_set_irq %x %x\n", s->uart_rx_pending, s->uart_ier);
+    int pending = (s->uart_rx_pending && (s->uart_ier & 0x01) != 0)
+                || (s->uart_tx_pending && (s->uart_ier & 0x02) != 0);
+    set_irq(&s->plic_irq[UART_IRQ], pending);
+}
+
+static uint32_t uart_read(void *opaque, uint32_t offset, int size_log2)
+{
+    RISCVMachine *s = (RISCVMachine *)opaque;
+    uint32_t val;
+
+    assert(size_log2 == 0);
+// printf("*** in uart_read reg %d\n", offset);
+    switch(offset) {
+
+    case UART_REG_DATA:
+        if (s->uart_lcr & UART_LCR_DLAB)
+            val = s->uart_dll;
+        else if (s->uart_rx_head != s->uart_rx_tail)    /* data to read? */
+        {
+            val = s->uart_rx_buf[s->uart_rx_head];
+            s->uart_rx_head = (s->uart_rx_head + 1) % UART_RX_BUFSIZE;
+            if (s->uart_rx_head == s->uart_rx_tail)     /* now empty? */
+            {
+                s->uart_rx_pending = 0;
+                uart_set_irq(s);
+            }
+        }
+        else
+            val = 0;
+        break;
+
+    case UART_REG_IER:
+        val = (s->uart_lcr & UART_LCR_DLAB) ? s->uart_dlm : s->uart_ier;
+        break;
+
+    case UART_REG_LCR:
+        val = s->uart_lcr;
+        break;
+
+    case UART_REG_IIR:
+        val = ((s->uart_fcr & 0x01) ? 0xC0 : 0x00)
+            | (s->uart_rx_pending ? ((s->uart_fcr & 0xC0) ? 0x0C : 0x04) : s->uart_tx_pending ? 0x02 : 0x01);
+        s->uart_rx_pending = 0;
+        s->uart_tx_pending = 0;
+        uart_set_irq(s);
+        break;
+
+    case UART_REG_MCR:
+        val = s->uart_mcr;
+        break;
+
+    case UART_REG_LSR:
+        val = 0x60 | s->uart_rx_pending;        /* tx always ready/empty */
+// printf("*** in uart_read LSR: %x\n", val);
+        break;
+
+    case UART_REG_MSR:
+        val = 0xB0;                             /* report CTS, DSR, DCD as asserted */
+        break;
+
+    case UART_REG_SCR:
+        val = s->uart_scr;
+        break;
+
+    default:
+        val = 0;
+        break;
+
+    }
+    return val;
+}
+
+static void console_write_char(RISCVMachine *s, uint8_t c)
+
+{
+    uint8_t buf[1];
+
+    buf[0] = c;
+    s->common.console->write_data(s->common.console->opaque, buf, 1);
+}
+
+static void console_write_string(RISCVMachine *s, char *str)
+
+{
+    while (*str)
+        console_write_char(s, (uint8_t)*str++);
+}
+
+static void uart_write(void *opaque, uint32_t offset, uint32_t val,
+                       int size_log2)
+{
+    RISCVMachine *s = (RISCVMachine *)opaque;
+
+//    printf("*** uartwrite: %d %02x\n", offset, val);
+    assert(size_log2 == 0);
+    switch(offset) {
+    case UART_REG_DATA:
+        if (s->uart_lcr & UART_LCR_DLAB)
+            s->uart_dll = val;
+        else
+        {
+#if defined(UART_OUT_DEBUG)
+            if (s->uart_pos == 0)
+                console_write_string(s, "uart: ");
+            if (val == '\n')
+                s->uart_pos = 0;
+            else
+                s->uart_pos++;
+#endif
+            console_write_char(s, val);
+            s->uart_tx_pending = 1;
+            uart_set_irq(s);
+        }
+        break;
+    case UART_REG_IER:
+        if (s->uart_lcr & UART_LCR_DLAB)
+            s->uart_dlm = val;
+        else
+        {
+            s->uart_ier = val;
+            uart_set_irq(s);
+        }
+        break;
+    case UART_REG_LCR:
+        s->uart_lcr = val;
+        break;
+    case UART_REG_FCR:
+        s->uart_fcr = val;
+        break;
+    case UART_REG_MCR:
+        s->uart_mcr = (val & 0xF);      /* loop not implemented */
+        break;
+    case UART_REG_SCR:
+        s->uart_scr = val;
+        break;
+    default:
+        break;
+    }
+}
+
+/*  Returns the number of bytes that can be received.  */
+int  uart_can_rx(VirtMachine *v)
+{
+    RISCVMachine *s = (RISCVMachine *)v;
+
+    return (s->uart_rx_head + UART_RX_BUFSIZE-1 - s->uart_rx_tail) % UART_RX_BUFSIZE;
+}
+
+/*  Called when user types on console.  */
+void uart_rx_data(VirtMachine *v, uint8_t *buf, int size)
+{
+    RISCVMachine *s = (RISCVMachine *)v;
+
+    for (; size > 0; size--)
+    {
+        int tail = s->uart_rx_tail;
+        int newtail = (tail + 1) % UART_RX_BUFSIZE;
+        if (newtail == s->uart_rx_head)
+            return;             /* buffer full, characters lost */
+        s->uart_rx_buf[tail] = *buf++;
+        s->uart_rx_tail = newtail;
+        s->uart_rx_pending = 1; /* data ready */
+        uart_set_irq(s);
+    }
 }
 
 static uint32_t htif_read(void *opaque, uint32_t offset,
@@ -142,9 +347,7 @@ static void htif_handle_cmd(RISCVMachine *s)
         printf("\nPower off.\n");
         exit(0);
     } else if (device == 1 && cmd == 1) {
-        uint8_t buf[1];
-        buf[0] = s->htif_tohost & 0xff;
-        s->common.console->write_data(s->common.console->opaque, buf, 1);
+        console_write_char(s, s->htif_tohost & 0xff);
         s->htif_tohost = 0;
         s->htif_fromhost = ((uint64_t)device << 56) | ((uint64_t)cmd << 48);
     } else if (device == 1 && cmd == 0) {
@@ -197,18 +400,12 @@ static void htif_poll(RISCVMachine *s)
 }
 #endif
 
-static void serial_write_cb(void *opaque, const uint8_t *buf, int buf_len)
-{
-    RISCVMachine *s = opaque;
-    if (s->common.console) {
-        s->common.console->write_data(s->common.console->opaque, buf, buf_len);
-    }
-}
-
 static uint32_t clint_read(void *opaque, uint32_t offset, int size_log2)
 {
     RISCVMachine *m = opaque;
     uint32_t val;
+
+// fprintf(stderr, "clint_read %x\n", offset);
 
     assert(size_log2 == 2);
     switch(offset) {
@@ -236,6 +433,7 @@ static void clint_write(void *opaque, uint32_t offset, uint32_t val,
 {
     RISCVMachine *m = opaque;
 
+// fprintf(stderr, "clint_write %x: %x\n", offset, val);
     assert(size_log2 == 2);
     switch(offset) {
     case 0x4000:
@@ -257,7 +455,7 @@ static void plic_update_mip(RISCVMachine *s)
     uint32_t mask;
     mask = s->plic_pending_irq & ~s->plic_served_irq;
     if (mask) {
-        riscv_cpu_set_mip(cpu, MIP_MEIP | MIP_SEIP);
+        riscv_cpu_set_mip(cpu, MIP_MEIP | MIP_SEIP); // XXXXXX
     } else {
         riscv_cpu_reset_mip(cpu, MIP_MEIP | MIP_SEIP);
     }
@@ -272,11 +470,14 @@ static uint32_t plic_read(void *opaque, uint32_t offset, int size_log2)
     uint32_t val, mask;
     int i;
     assert(size_log2 == 2);
+// fprintf(stderr, "PLIC read %x\n", offset);
     switch(offset) {
     case PLIC_HART_BASE:
+// fprintf(stderr, "PLIC_HART_BASE\n");
         val = 0;
         break;
     case PLIC_HART_BASE + 4:
+// fprintf(stderr, "PLIC_HART_BASE+4\n");
         mask = s->plic_pending_irq & ~s->plic_served_irq;
         if (mask != 0) {
             i = ctz32(mask);
@@ -300,8 +501,10 @@ static void plic_write(void *opaque, uint32_t offset, uint32_t val,
     RISCVMachine *s = opaque;
     
     assert(size_log2 == 2);
+// fprintf(stderr, "PLIC write %x: %x\n", offset, val);
     switch(offset) {
     case PLIC_HART_BASE + 4:
+// fprintf(stderr, "PLIC_HART_BASE+4\n");
         val--;
         if (val < 32) {
             s->plic_served_irq &= ~(1 << val);
@@ -318,6 +521,7 @@ static void plic_set_irq(void *opaque, int irq_num, int state)
     RISCVMachine *s = opaque;
     uint32_t mask;
 
+// fprintf(stderr, "plic_set_irq %x = %x\n", irq_num, state);
     mask = 1 << (irq_num - 1);
     if (state) 
         s->plic_pending_irq |= mask;
@@ -599,8 +803,8 @@ void fdt_end(FDTState *s)
 
 static int riscv_build_fdt(RISCVMachine *m, uint8_t *dst,
                            uint64_t kernel_start, uint64_t kernel_size,
-                           uint64_t initrd_start, uint64_t initrd_size,
-                           const char *cmd_line)
+                           const char *cmd_line,
+                           uint64_t initrd_start, uint64_t initrd_size)
 {
     FDTState *s;
     int size, max_xlen, i, cur_phandle, intc_phandle, plic_phandle;
@@ -709,14 +913,6 @@ static int riscv_build_fdt(RISCVMachine *m, uint8_t *dst,
     fdt_prop_u32(s, "phandle", plic_phandle);
 
     fdt_end_node(s); /* plic */
-
-    fdt_begin_node_num(s, "serial", UART_BASE_ADDR);
-    fdt_prop_str(s, "compatible", "ns16550a");
-    fdt_prop_tab_u64_2(s, "reg", UART_BASE_ADDR, UART_SIZE);
-    tab[0] = plic_phandle;
-    tab[1] = UART_IRQ;
-    fdt_prop_tab_u32(s, "interrupts-extended", tab, 2);
-    fdt_end_node(s); /* serial */
     
     for(i = 0; i < m->virtio_count; i++) {
         fdt_begin_node_num(s, "virtio", VIRTIO_BASE_ADDR + i * VIRTIO_SIZE);
@@ -725,6 +921,7 @@ static int riscv_build_fdt(RISCVMachine *m, uint8_t *dst,
                            VIRTIO_SIZE);
         tab[0] = plic_phandle;
         tab[1] = VIRTIO_IRQ + i;
+fprintf(stderr, "set virtio dev %d irq to %d\n", i, VIRTIO_IRQ + i);
         fdt_prop_tab_u32(s, "interrupts-extended", tab, 2);
         fdt_end_node(s); /* virtio */
     }
@@ -754,13 +951,31 @@ static int riscv_build_fdt(RISCVMachine *m, uint8_t *dst,
         fdt_prop_tab_u64(s, "linux,initrd-end", initrd_start + initrd_size);
     }
     
-
     fdt_end_node(s); /* chosen */
-    
+
+    /* UART */
+    fdt_begin_node_num(s, "uart", UART_BASE_ADDR);
+    tab[0] = plic_phandle;
+    tab[1] = UART_IRQ;
+    fdt_prop_tab_u32(s, "interrupts-extended", tab, 2);
+    //fdt_prop_u32(s, "interrupts", 0);
+    //fdt_prop_u32(s, "interrupt-parent", 0);
+    fdt_prop_u32(s, "clock-frequency", 384000);
+    fdt_prop_tab_u64_2(s, "reg", UART_BASE_ADDR, 0x100);
+    fdt_prop_str(s, "compatible", "ns16550a");
+    fdt_end_node(s); /* uart */
+
+#if 0   /* requires a mechanism to get the BBL's tohost and fromhost variable non-standard addresses */
+    /* HTIF */
+    fdt_begin_node(s, "htif");
+    fdt_prop_str(s, "compatible", "ucb,htif0");
+    fdt_end_node(s); /* htif */
+#endif
+
     fdt_end_node(s); /* / */
 
     size = fdt_output(s, dst);
-#if 1
+#if 0
     {
         FILE *f;
         f = fopen("/tmp/riscvemu.dtb", "wb");
@@ -774,66 +989,140 @@ static int riscv_build_fdt(RISCVMachine *m, uint8_t *dst,
 
 static void copy_bios(RISCVMachine *s, const uint8_t *buf, int buf_len,
                       const uint8_t *kernel_buf, int kernel_buf_len,
-                      const uint8_t *initrd_buf, int initrd_buf_len,
-                      const char *cmd_line)
+                      const char *cmd_line,
+                      const uint8_t *initrd_buf, int initrd_buf_len)
 {
-    uint32_t fdt_addr, align, kernel_base, initrd_base;
+    uint64_t fdt_addr, kernel_align, kernel_base, kernel_size;
+    uint64_t bios_base, bios_size, initrd_base, initrd_size;
+    uint64_t image_start, image_len;
     uint8_t *ram_ptr;
     uint32_t *q;
-
-    if (buf_len > s->ram_size) {
-        vm_error("BIOS too big\n");
-        exit(1);
-    }
+    int res;
 
     ram_ptr = get_ram_ptr(s, RAM_BASE_ADDR, TRUE);
-    memcpy(ram_ptr, buf, buf_len);
 
-    kernel_base = 0;
+    /* copy the bios */
+    if (elf_detect_magic(buf, buf_len)) {
+        if (elf_load(buf, buf_len, ram_ptr, s->ram_size,
+                     &image_start, &image_len) == -1) {
+            vm_error("Failed to load ELF BIOS\n");
+            exit(1);
+        }
+        bios_base = image_start - RAM_BASE_ADDR;
+        bios_size = image_len;
+    } else {
+        if (buf_len > s->ram_size) {
+            vm_error("BIOS too big\n");
+            exit(1);
+        }
+        memcpy(ram_ptr, buf, buf_len);
+        bios_base = RAM_BASE_ADDR;
+        bios_size = buf_len;
+    }
+
+    /* copy the kernel if present */
+    printf("kernel_buf_len: %d\n", kernel_buf_len);
+    if (kernel_buf_len > 0) {
+        if (s->max_xlen == 32)
+            kernel_align = 4 << 20; /* 4 MB page align */
+        else
+            kernel_align = 2 << 20; /* 2 MB page align */
+        kernel_base = (buf_len + kernel_align - 1) & ~(kernel_align - 1);
+        printf("kernel_base: %d\n", kernel_base);
+
+        if (elf_detect_magic(kernel_buf, kernel_buf_len)) {
+            if (elf_load(kernel_buf, kernel_buf_len,
+                         ram_ptr + kernel_base,
+                         s->ram_size - kernel_base,
+                         &image_start, &image_len) == -1) {
+                vm_error("Failed to load ELF kernel\n");
+                exit(1);
+            }
+            kernel_base += image_start;
+            kernel_size = image_len;
+        } else {
+
+            memcpy(ram_ptr + kernel_base, kernel_buf, kernel_buf_len);
+            kernel_size = kernel_buf_len;
+
+        }
+
+    } else {
+        kernel_base = 0;
+        kernel_size = 0;
+    }
+#if 0
     if (kernel_buf_len > 0) {
         /* copy the kernel if present */
         if (s->max_xlen == 32)
-            align = 4 << 20; /* 4 MB page align */
+            kernel_align = 4 << 20; /* 4 MB page align */
         else
-            align = 2 << 20; /* 2 MB page align */
-        kernel_base = (buf_len + align - 1) & ~(align - 1);
+            kernel_align = 2 << 20; /* 2 MB page align */
+        kernel_base = (buf_len + kernel_align - 1) & ~(kernel_align - 1);
         memcpy(ram_ptr + kernel_base, kernel_buf, kernel_buf_len);
-        if (kernel_buf_len + kernel_base > s->ram_size) {
-            vm_error("kernel too big");
+    } else {
+        kernel_base = 0;
+        kernel_size = 0;
+    }
+#endif
+
+    /* copy the initrd if present */
+    if (initrd_buf_len > 0) {
+        if (kernel_size > 0) {
+            initrd_base = kernel_base + kernel_size;
+        } else {
+            initrd_base = bios_base + bios_size;
+        }
+        initrd_base &= ~(DEVRAM_PAGE_SIZE - 1);
+        initrd_base += DEVRAM_PAGE_SIZE;
+        if (initrd_base + initrd_buf_len > s->ram_size) {
+            vm_error("initrd too big\n");
             exit(1);
         }
+#ifdef CONFIG_COMPRESSED_INITRAMFS
+        if (compress_detect_magic(initrd_buf, initrd_buf_len)) {
+            res = decompress(initrd_buf, initrd_buf_len,
+                             ram_ptr + initrd_base,
+                             s->ram_size - kernel_base);
+            if (res == -1) {
+                vm_error("Failed to decompress initramfs image\n");
+                exit(1);
+            }
+            initrd_size = (uint64_t)res;
+        } else {
+#else
+        {
+#endif
+            memcpy(ram_ptr + initrd_base, initrd_buf, initrd_buf_len);
+            initrd_size = initrd_buf_len;
+        }
+    } else {
+        initrd_base = 0;
+        initrd_size = 0;
     }
 
-    initrd_base = 0;
-    if (initrd_buf_len > 0) {
-        /* same allocation as QEMU */
-        initrd_base = s->ram_size / 2;
-        if (initrd_base > (128 << 20))
-            initrd_base = 128 << 20;
-        memcpy(ram_ptr + initrd_base, initrd_buf, initrd_buf_len);
-        if (initrd_buf_len + initrd_base > s->ram_size) {
-            vm_error("initrd too big");
-            exit(1);
-        }
-    }
-    
     ram_ptr = get_ram_ptr(s, 0, TRUE);
     
     fdt_addr = 0x1000 + 8 * 8;
 
     riscv_build_fdt(s, ram_ptr + fdt_addr,
-                    RAM_BASE_ADDR + kernel_base, kernel_buf_len,
-                    RAM_BASE_ADDR + initrd_base, initrd_buf_len,
-                    cmd_line);
+                    RAM_BASE_ADDR + kernel_base,
+                    kernel_size, cmd_line,
+                    RAM_BASE_ADDR + initrd_base,
+                    initrd_size);
 
     /* jump_addr = 0x80000000 */
     
     q = (uint32_t *)(ram_ptr + 0x1000);
+
     q[0] = 0x297 + 0x80000000 - 0x1000; /* auipc t0, jump_addr */
     q[1] = 0x597; /* auipc a1, dtb */
     q[2] = 0x58593 + ((fdt_addr - 4) << 20); /* addi a1, a1, dtb */
     q[3] = 0xf1402573; /* csrr a0, mhartid */
     q[4] = 0x00028067; /* jalr zero, t0, jump_addr */
+
+    printf("%x", q);
+    
 }
 
 static void riscv_flush_tlb_write_range(void *opaque, uint8_t *ram_addr,
@@ -881,6 +1170,21 @@ static VirtMachine *riscv_machine_init(const VirtMachineParams *p)
         /* XXX: should free resources */
         return NULL;
     }
+
+    /* HTIF */
+    uint64_t htif_start = DEFAULT_HTIF_BASE_ADDR;
+    if (p->files[VM_FILE_BIOS].buf) {
+        const VMFileEntry *bios = &p->files[VM_FILE_BIOS];
+        if (elf_detect_magic(bios->buf, bios->len)) {
+            uint64_t addr;
+            if (elf_find_section(bios->buf, ".htif", &addr, NULL)) {
+                htif_start = addr + 8;
+            }
+        }
+    }
+    cpu_register_device(s->mem_map, htif_start, 16,
+                        s, htif_read, htif_write, DEVIO_SIZE32);
+
     /* RAM */
     ram_flags = 0;
     cpu_register_ram(s->mem_map, RAM_BASE_ADDR, p->ram_size, ram_flags);
@@ -894,22 +1198,19 @@ static VirtMachine *riscv_machine_init(const VirtMachineParams *p)
                         clint_read, clint_write, DEVIO_SIZE32);
     cpu_register_device(s->mem_map, PLIC_BASE_ADDR, PLIC_SIZE, s,
                         plic_read, plic_write, DEVIO_SIZE32);
+    cpu_register_device(s->mem_map, UART_BASE_ADDR, 16, s,
+                        uart_read, uart_write, DEVIO_SIZE8);
     for(i = 1; i < 32; i++) {
         irq_init(&s->plic_irq[i], plic_set_irq, s, i);
     }
 
-    cpu_register_device(s->mem_map, HTIF_BASE_ADDR, 16,
-                        s, htif_read, htif_write, DEVIO_SIZE32);
     s->common.console = p->console;
-
-    s->serial_state = serial_init(s->mem_map, UART_BASE_ADDR, &s->plic_irq[UART_IRQ],
-        serial_write_cb, s);
 
     memset(vbus, 0, sizeof(*vbus));
     vbus->mem_map = s->mem_map;
     vbus->addr = VIRTIO_BASE_ADDR;
     irq_num = VIRTIO_IRQ;
-    
+
     /* virtio console */
     if (p->console) {
         vbus->irq = &s->plic_irq[irq_num];
@@ -957,6 +1258,7 @@ static VirtMachine *riscv_machine_init(const VirtMachineParams *p)
         fb_dev = mallocz(sizeof(*fb_dev));
         s->common.fb_dev = fb_dev;
         if (!strcmp(p->display_device, "simplefb")) {
+fprintf(stderr, "*** mapping fb to %16x\n", FRAMEBUFFER_BASE_ADDR);
             simplefb_init(s->mem_map,
                           FRAMEBUFFER_BASE_ADDR,
                           fb_dev,
@@ -995,8 +1297,8 @@ static VirtMachine *riscv_machine_init(const VirtMachineParams *p)
 
     copy_bios(s, p->files[VM_FILE_BIOS].buf, p->files[VM_FILE_BIOS].len,
               p->files[VM_FILE_KERNEL].buf, p->files[VM_FILE_KERNEL].len,
-              p->files[VM_FILE_INITRD].buf, p->files[VM_FILE_INITRD].len,
-              p->cmdline);
+              p->cmdline,
+              p->files[VM_FILE_INITRD].buf, p->files[VM_FILE_INITRD].len);
     
     return (VirtMachine *)s;
 }
@@ -1010,6 +1312,8 @@ static void riscv_machine_end(VirtMachine *s1)
     free(s);
 }
 
+unsigned long get_stimecmp(RISCVCPUState *s);
+
 /* in ms */
 static int riscv_machine_get_sleep_duration(VirtMachine *s1, int delay)
 {
@@ -1021,7 +1325,7 @@ static int riscv_machine_get_sleep_duration(VirtMachine *s1, int delay)
     if (!(riscv_cpu_get_mip(s) & MIP_MTIP)) {
         delay1 = m->timecmp - rtc_get_time(m);
         if (delay1 <= 0) {
-            riscv_cpu_set_mip(s, MIP_MTIP);
+//            riscv_cpu_set_mip(s, MIP_MTIP);
             delay = 0;
         } else {
             /* convert delay to ms */
@@ -1030,6 +1334,23 @@ static int riscv_machine_get_sleep_duration(VirtMachine *s1, int delay)
                 delay = delay1;
         }
     }
+
+    if (!(riscv_cpu_get_mip(s) & MIP_MSIP)) {
+          uint64_t stimecmp = riscv_cpu_get_stimecmp(s);
+          delay1 = stimecmp - rtc_get_real_time(s);
+// printf("delay1: %llu - %llu\n", stimecmp, rtc_get_real_time(s));
+        if (delay1 <= 0) {
+// printf("I!\n");
+            riscv_cpu_set_mip(s, MIP_STIP);
+            delay = 0;
+        } else {
+            /* convert delay to ms */
+            delay1 = delay1 / (RTC_FREQ / 1000);
+            if (delay1 < delay)
+                delay = delay1;
+        }
+    }
+
     if (!riscv_cpu_get_power_down(s))
         delay = 0;
     return delay;
@@ -1044,6 +1365,7 @@ static void riscv_machine_interp(VirtMachine *s1, int max_exec_cycle)
 static void riscv_vm_send_key_event(VirtMachine *s1, BOOL is_down,
                                     uint16_t key_code)
 {
+fprintf(stderr, "*** riscv_vm_send_key_event %d\n", key_code);
     RISCVMachine *s = (RISCVMachine *)s1;
     if (s->keyboard_dev) {
         virtio_input_send_key_event(s->keyboard_dev, is_down, key_code);
