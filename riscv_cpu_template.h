@@ -201,7 +201,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                                                    int n_cycles1)
 {
 
+    int count = 0;
     uint32_t opcode, insn, rd, rs1, rs2, funct3;
+    uint32_t cs2, cs1, cd;
     int32_t imm, cond, err;
     target_ulong addr, val, val2;
 #ifndef USE_GLOBAL_VARIABLES
@@ -232,7 +234,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
     code_ptr = NULL;
     code_end = NULL;
     code_to_pc_addend = s->pc;
-    
+
     /* we use a single execution loop to keep a simple control flow
        for emscripten */
     for(;;) {
@@ -243,6 +245,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             uint8_t *ptr;
             
             s->pc = GET_PC();
+
             /* we test n_cycles only between blocks so that timer
                interrupts only happen between the blocks. It is
                important to reduce the translated code size. */
@@ -263,7 +266,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 /* TLB match */ 
                 ptr = (uint8_t *)(s->tlb_code[tlb_idx].mem_addend +
                                   (uintptr_t)addr);
+
             } else {
+
                 if (unlikely(target_read_insn_slow(s, &ptr, addr)))
                     goto mmu_exception;
             }
@@ -288,29 +293,32 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             insn = get_insn32(code_ptr);
         }
         s->n_cycles--;
-#if 0
-        if (1) {
-#ifdef CONFIG_LOGFILE
-            log_printf("pc=0x"); fprint_target_ulong(log_file, GET_PC()); log_printf(" insn=%08x\n", insn);
-            fflush(log_file);
-#else
-            printf("pc=0x"); print_target_ulong(GET_PC()); printf(" insn=%08x\n", insn);
-            //            dump_regs(s);
-#endif
-        }
-#endif
 
         if(insn != 0) {
+            printf("%x\n", insn);
         }
         opcode = insn & 0x7f;
 
-                if(insn != 0) {
-        // printf("opcode = %x\n", opcode);
+        if(insn != 0) {
         }
         rd = (insn >> 7) & 0x1f;
         rs1 = (insn >> 15) & 0x1f;
         rs2 = (insn >> 20) & 0x1f;
+        cs1 = rs1;
+        cs2 = rs2;
+        cd = rd;
+
         switch(opcode) {
+            case 0x5b:
+                switch(cs2) {
+                    case 0xa:
+                        s->cap[cd] = s->cap[cs1];
+                }
+
+                s->pc = GET_PC() + 4;
+                JUMP_INSN;
+                break;
+
 #ifdef CONFIG_EXT_C
         C_QUADRANT(0)
             funct3 = (insn >> 13) & 7;
@@ -1017,35 +1025,35 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 s->reg[rd] = val;
             NEXT_INSN;
 #endif
-#if XLEN >= 128
-        case 0x5b: /* OP-IMM-64 */
-            funct3 = (insn >> 12) & 7;
-            imm = (int32_t)insn >> 20;
-            val = s->reg[rs1];
-            switch(funct3) {
-            case 0: /* addid */
-                val = (int64_t)(val + imm);
-                break;
-            case 1: /* sllid */
-                if ((imm & ~63) != 0)
-                    goto illegal_insn;
-                val = (int64_t)(val << (imm & 63));
-                break;
-            case 5: /* srlid/sraid */
-                if ((imm & ~(63 | 0x400)) != 0)
-                    goto illegal_insn;
-                if (imm & 0x400)
-                    val = (int64_t)val >> (imm & 63);
-                else
-                    val = (int64_t)((uint64_t)val >> (imm & 63));
-                break;
-            default:
-                goto illegal_insn;
-            }
-            if (rd != 0)
-                s->reg[rd] = val;
-            NEXT_INSN;
-#endif
+// #if XLEN >= 128
+//         case 0x5b: /* OP-IMM-64 */
+//             funct3 = (insn >> 12) & 7;
+//             imm = (int32_t)insn >> 20;
+//             val = s->reg[rs1];
+//             switch(funct3) {
+//             case 0: /* addid */
+//                 val = (int64_t)(val + imm);
+//                 break;
+//             case 1: /* sllid */
+//                 if ((imm & ~63) != 0)
+//                     goto illegal_insn;
+//                 val = (int64_t)(val << (imm & 63));
+//                 break;
+//             case 5: /* srlid/sraid */
+//                 if ((imm & ~(63 | 0x400)) != 0)
+//                     goto illegal_insn;
+//                 if (imm & 0x400)
+//                     val = (int64_t)val >> (imm & 63);
+//                 else
+//                     val = (int64_t)((uint64_t)val >> (imm & 63));
+//                 break;
+//             default:
+//                 goto illegal_insn;
+//             }
+//             if (rd != 0)
+//                 s->reg[rd] = val;
+//             NEXT_INSN;
+// #endif
         case 0x33:
             imm = insn >> 25;
             val = s->reg[rs1];

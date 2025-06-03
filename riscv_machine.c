@@ -1027,7 +1027,7 @@ static void copy_bios(RISCVMachine *s, const uint8_t *buf, int buf_len,
             kernel_align = 4 << 20; /* 4 MB page align */
         else
             kernel_align = 2 << 20; /* 2 MB page align */
-        kernel_base = (buf_len + kernel_align - 1) & ~(kernel_align - 1);
+        kernel_base = (buf_len +  kernel_align - 1) & ~(kernel_align - 1);
         printf("kernel_base: %d\n", kernel_base);
 
         if (elf_detect_magic(kernel_buf, kernel_buf_len)) {
@@ -1040,9 +1040,11 @@ static void copy_bios(RISCVMachine *s, const uint8_t *buf, int buf_len,
             }
             kernel_base += image_start;
             kernel_size = image_len;
+
+
         } else {
 
-            memcpy(ram_ptr + kernel_base, kernel_buf, kernel_buf_len);
+            memcpy(ram_ptr + kernel_base, kernel_buf + 0x7c, kernel_buf_len - 0x7c);
             kernel_size = kernel_buf_len;
 
         }
@@ -1120,8 +1122,6 @@ static void copy_bios(RISCVMachine *s, const uint8_t *buf, int buf_len,
     q[2] = 0x58593 + ((fdt_addr - 4) << 20); /* addi a1, a1, dtb */
     q[3] = 0xf1402573; /* csrr a0, mhartid */
     q[4] = 0x00028067; /* jalr zero, t0, jump_addr */
-
-    printf("%x", q);
     
 }
 

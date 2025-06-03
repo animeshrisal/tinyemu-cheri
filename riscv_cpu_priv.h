@@ -26,6 +26,7 @@
 
 #include "riscv_cpu.h"
 #include "cutils.h"
+#include "cheri.h"
 
 #define __exception __attribute__((warn_unused_result))
 
@@ -180,6 +181,7 @@ struct RISCVCPUState {
     
     target_ulong pc;
     target_ulong reg[32];
+    cap_register_t cap[32];
 
 #ifdef USE_GLOBAL_VARIABLES
     /* faster to use global variables with emscripten */
@@ -237,6 +239,8 @@ struct RISCVCPUState {
 #endif
 
     target_ulong load_res; /* for atomic LR/SC */
+
+    RISCVCapabilityState cap_state;
 
     PhysMemoryMap *mem_map;
 
