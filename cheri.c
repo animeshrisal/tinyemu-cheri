@@ -53,49 +53,49 @@ capability_t get_register(int n) {
 
 // }
 
-capability_t clearTag(capability_t cap) {
+capability_t inline clearTag(capability_t cap) {
   cap.tag = 0;
   return cap;
 }
 
-capability_t clearTagIf(capability_t cap, BOOL bool) {
+capability_t inline clearTagIf(capability_t cap, BOOL bool) {
   if (bool == 1) {
     cap.tag = 1;
   }
   return cap;
 }
 
-capability_t clearTagIfSealed(capability_t cap) { return cap; }
+capability_t inline clearTagIfSealed(capability_t cap) { return cap; }
 
-capability_t unSealCap(capability_t cap) { return cap; }
+capability_t inline unSealCap(capability_t cap) { return cap; }
 
-uint64_t isCapSealed(capability_t cap) { return 1; }
+uint64_t inline isCapSealed(capability_t cap) { return 1; }
 
 uint64_t inline getCapPerms(capability_t cap) {
   return (uint64_t)cap.permissions;
 }
 
-BOOL hasReservedOType(capability_t cap) {
+BOOL inline hasReservedOType(capability_t cap) {
   return 1;
 }
 
-uint64_t getCapabilityBaseBits(capability_t cap) { return 1; }
+uint64_t inline getCapabilityBaseBits(capability_t cap) { return 1; }
 
-uint64_t getCapLength(capability_t cap) { return 1; }
+uint64_t inline getCapLength(capability_t cap) { return 1; }
 
-uint64_t getCapOffsetBits(capability_t cap) { return 1; }
+uint64_t inline getCapOffsetBits(capability_t cap) { return 1; }
 
-uint64_t getCapFlags(capability_t cap) { return 1; }
+uint64_t inline getCapFlags(capability_t cap) { return 1; }
 
-uint64_t EXTZ(uint64_t flags) { return (uint64_t)flags; }
+uint64_t inline EXTZ(uint64_t flags) { return (uint64_t)flags; }
 
-uint64_t EXTS(uint64_t flags) { return (uint64_t)flags | ~0ULL; }
+uint64_t inline EXTS(uint64_t flags) { return (uint64_t)flags | ~0ULL; }
 
-uint64_t bool_to_bits(BOOL sealed) { return 1; }
+uint64_t inline bool_to_bits(BOOL sealed) { return 1; }
 
-uint64_t getCapHigh(capability_t cap) { return 1; }
+uint64_t inline getCapHigh(capability_t cap) { return 1; }
 
-uint64_t getCapTop(capability_t cap) { return 1; }
+uint64_t inline getCapTop(capability_t cap) { return 1; }
 
-uint64_t getBasePermBits(capability_t cap) { return 1; }
+uint64_t inline getBasePermBits(capability_t cap) { return 1; }
 
