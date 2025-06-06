@@ -39,7 +39,9 @@ capability_t *get_entry(uint64_t base_addr) {
   return NULL;
 }
 
-capability_t get_register(int n) {}
+capability_t get_register(int n) {
+
+}
 
 // BOOL setCapBounds (capability_t cap, cap_address_bits_t a, cap_len_bits_t l,
 // capability_t *cap) {
@@ -73,7 +75,9 @@ uint64_t inline getCapPerms(capability_t cap) {
   return (uint64_t)cap.permissions;
 }
 
-BOOL hasReservedOType(capability_t cap) {}
+BOOL hasReservedOType(capability_t cap) {
+  return 1;
+}
 
 uint64_t getCapabilityBaseBits(capability_t cap) { return 1; }
 
@@ -85,6 +89,13 @@ uint64_t getCapFlags(capability_t cap) { return 1; }
 
 uint64_t EXTZ(uint64_t flags) { return (uint64_t)flags; }
 
-uint64_t EXTS(u_int64_t flags) { return (uint64_t)flags | ~0ULL; }
+uint64_t EXTS(uint64_t flags) { return (uint64_t)flags | ~0ULL; }
 
 uint64_t bool_to_bits(BOOL sealed) { return 1; }
+
+uint64_t getCapHigh(capability_t cap) { return 1; }
+
+uint64_t getCapTop(capability_t cap) { return 1; }
+
+uint64_t getBasePermBits(capability_t cap) { return 1; }
+

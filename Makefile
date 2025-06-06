@@ -102,7 +102,7 @@ endif
 all: $(PROGS) $(LIBS)
 
 EMU_OBJS:=virtio.o pci.o fs.o cutils.o iomem.o simplefb.o \
-    json.o machine.o temu.o elf.o
+    json.o machine.o temu.o elf.o cheri.o
 
 ifdef CONFIG_SLIRP
 override CFLAGS+=-DCONFIG_SLIRP

@@ -21,6 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
+#include "cheri.h"
+
 #if XLEN == 32
 #define uintx_t uint32_t
 #define intx_t int32_t
@@ -311,7 +314,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
         switch(opcode) {
 
-            case 0x5b && 0x7f:
+            case 0x5b:
                 capability_t c = s->cap[cs1];
                 switch(cs2) {
                     //Capability inspection instruction
@@ -372,7 +375,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 s->pc = GET_PC() + 4;
                 JUMP_INSN;
                 break;
-            case 0x5b:
+            case 0x9cc:
                 uint32_t x = (insn >> 25) && 0x7F;
                 switch(x) {
                     case 0xb:
