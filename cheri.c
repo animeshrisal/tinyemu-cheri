@@ -75,11 +75,11 @@ uint64_t isCapSealed(capability_t cap) {
     return 1;
 }
 
-uint64_t  getCapPerms(capability_t cap) {
+uint64_t inline getCapPerms(capability_t cap) {
     return (uint64_t)cap.permissions;
 }
 
-uint64_t hasReservedOType(capability_t cap) {
+BOOL hasReservedOType(capability_t cap) {
 
 }
 
@@ -100,7 +100,11 @@ uint64_t getCapFlags(capability_t cap) {
 }
 
 uint64_t EXTZ(uint64_t flags) {
-    return 1;
+    return (uint64_t)flags;
+}
+
+uint64_t EXTS(u_int64_t flags) {
+return (uint64_t)flags | ~0ULL;
 }
 
 uint64_t bool_to_bits(BOOL sealed) {
