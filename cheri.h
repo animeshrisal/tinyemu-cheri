@@ -64,6 +64,11 @@ typedef struct {
   uint64_t cs2_top;
 } CapBounds;
 
+typedef struct {
+    BOOL representable;
+    capability_t cap;
+} CapAddrResult;
+
 void insert_entry(capability_t cap);
 capability_t *get_entry(uint64_t base_addr);
 capability_t get_register(int n);
@@ -88,5 +93,6 @@ uint64_t EXTS(uint64_t flags);
 CapBounds getCapBounds(capability_t cap);
 uint64_t getCapabilityBaseBits(capability_t cap);
 uint64_t getCapCursor(capability_t cap);
+capability_t sealCap(capability_t cap);
 #endif
 

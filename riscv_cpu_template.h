@@ -170,6 +170,10 @@ static inline uintx_t glue(mulhsu, XLEN)(intx_t a, uintx_t b)
     return r1;
 }
 
+uint64_t inline truncate(uint64_t val, int width) {
+    return val & ((1ULL << width) - 1);
+}
+
 #endif
 
 #define DUP2(F, n) F(n) F(n+1)
@@ -395,8 +399,115 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 uint64_t cs2_cursor = getCapCursor(c2);
                 CapBounds cap_bounds = getCapBounds(c2);
             } else if (more_op == 0xc) {
+                //CSeal 
 
+                capability_t c1 = s->cap[cs1];
+                capability_t c2 = s->cap[cs2];
+
+                uint64_t cs2_cursor = getCapCursor(c2);
+                CapBounds cap_bounds = getCapBounds(c2);
+
+                BOOL permitted = c2.tag 
+                    && !(isCapSealed(c2))
+               //     & c2.permit_seal
+                    && (cs2_cursor >= cap_bounds.cs2_base)
+                    && (cs2_cursor  < cap_bounds.cs2_top)
+                    && (cs2_cursor <= CAP_MAX_OTYPE)
+
+                capability_t inCap = clearTagIfSealed(cs1);
+                capability_t newCap = sealCap(inCap, 1);
+
+                s->cap[cd] = clearTagIf(newCap, !(permitted));
+
+            } else if(more_op == 0xd) {
+                capability_t c1 = s->cap[cs1];
+                uint64_t rs2 = s->reg[rs2];
+                uint64_t perms = getCapPerms(c1);
+                uint64_t mask = truncate(rs2, CAP_PERMS_WIDTH);
+                capability_t inCap = clearTagIfSealed(c1);
+                capability_t newCap = setCapPerms(inCap, perms & mask);
+                s->cap[cd] = newCap;
+            } else if(more_op == 0xe) {
+
+                //CSetFlags
+
+                capability_t c1 = s->cap[cs1];
+                uint64_t rs2 = s->reg[rs2];
+                capability_t inCap = clearTagIfSealed(c1);
+                capability_t newCap = setCapFlags(inCap, truncate(rs2, CAP_FLAGS_WIDTH));
+                s->cap[cd] = newCap;
+            } else if(more_op == 0xf) {
+                //CSetOffset
+
+                capability_t c1 = s->cap[cs1];
+                uint64_t rs2 = s->reg[rs2];
+                capability_t inCap = clearTagIfSealed(c1);
+                BOOL success;
+                capability_t newCap = setCapOffset(inCap, rs2);
+                s->cap[cd] = clearTagIf(newCap, !success);
+
+            } else if(more_op == 0x10) {
+                capability_t c1 = s->cap[cs1];
+                uint64_t rs2 = s->reg[rs2];
+                capability_t inCap = clearTagIfSealed(c1);
+                CapAddrResult result = setCapAddr(inCap, rs2);
+                s->cap[cd] = clearTagIf(result.cap, !result.representable);
+            } else if(more_op == 0x11) {
+                capability_t c1 = s->cap[cs1];
+                uint64_t rs2 = s->reg[rs2];
+                capability_t inCap = clearTagIfSealed(c1);
+                CapAddrResult result = incCapOffset(inCap, rs2);
+                s->cap[cd] = clearTagIf(result.cap, !result.success);
+            } else if(more_op == 0x8) {
+                capability_t c1 = s->cap[cs1];
+                uint64_t rs2 = s->reg[rs2];
+
+                uint64_t newBase = c1.address;
+                uint64_t newTop = EXTZ(newBase) + EXTZ(rs2);
+
+                BOOL inBounds = inCapBounds(c1, newBase, (uint64_t)rs2);
+                capability_t inCap = clearTagIfSealed(c1);
+
+                typedef struct {
+                    /* ignoring first return value */
+                    capability_t cap;
+                } SetCapBoundsResult;
+
+                SetCapBoundsResult result = setCapBounds(inCap, newBase, newTop);
+                s->cap[cd] = clearTagIf(result.cap, !inBounds);
+            } else if(more_op == 0x9 ) {
+                capability_t c1 = s->cap[cs1];
+                uint64_t rs2 = s->reg[rs2];
+
+                uint64_t newBase = c1.address;
+                uint64_t newTop = EXTZ(newBase) + EXTZ(rs2);
+
+                BOOL inBounds = inCapBounds(c1, newBase, (uint64_t)rs2);
+                capability_t inCap = clearTagIfSealed(c1);
+
+                typedef struct {
+                    BOOL exact;
+                    capability_t cap;
+                } SetCapBoundsResult;
+
+                SetCapBoundsResult result = setCapBounds(inCap, newBase, newTop);
+                s->cap[cd] = clearTagIf(result.cap, !(inBounds && result.exact));
+            } else if(more_op = 0x16) {
+                capability_t capVal = s->cap[cs1];
+                uint64_t intVal = s->reg[rs2];
+
+                uint64_t capLow = capToMemBits(capVal) & ((1ULL << XLEN) - 1);
+
+                capability_t newCap = memBitsToCapability(false, (intVal << XLEN) | capLow);
+
+                s->cap[cd] = newCap;
+            } else if(more_op = 0x7f) {
+                // ccleartag
+                capability_t capVal = s->cap[cs1];
+                s->cap[cd] = clearTag(capVal);
             }
+            }
+        }
                 s->pc = GET_PC() + 4;
                 JUMP_INSN;
                 break;

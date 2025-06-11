@@ -109,3 +109,7 @@ CapBounds inline getCapBounds(capability_t cap) {
 uint64_t inline getCapCursor(capability_t cap) {
   return 1;
 }
+
+capability_t sealCap(capability_t cap) {
+  return 1;
+}
