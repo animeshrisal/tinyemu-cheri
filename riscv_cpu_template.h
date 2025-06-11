@@ -307,6 +307,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         rd = (insn >> 7) & 0x1f;
         rs1 = (insn >> 15) & 0x1f;
         rs2 = (insn >> 20) & 0x1f;
+    
         cs1 = rs1;
         cs2 = rs2;
         cd = rd;
@@ -315,7 +316,10 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         switch(opcode) {
 
             case 0x5b:
+                uint32_t more_op = (insn >> 25) && 0x7f;
                 capability_t c = s->cap[cs1];
+
+                if(more_op == 0x7f) {
                 switch(cs2) {
                     //Capability inspection instruction
                     case 0x0:
@@ -356,7 +360,20 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     case 0x11:
                         
                         break;
+                    case 0xb:
+                        // CClearTag
+                        c.tag = 0;
+                        s->cap[cd] = s->cap[cs1];
+
+                        break;
                     case 0xc:
+                        uint64_t imm = (insn >> 20) && 0x1f; 
+                        // JALR.CAP cd, cs1
+                        uint64_t xlenbits = EXTS(imm);
+
+                        //recheck this later
+                        s->pc = c.base + xlenbits & (1ULL - 1);
+                        // s->cap_state.pcc = getCapabilityBaseBits(c);
                         break;
                     case 0x14:
                         break;
@@ -371,7 +388,15 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     case 0x12:
                         break;
                 }
+            } else if(more_op == 0xb) {
+                capability_t c1 = s->cap[cs1];
+                capability_t c2 = s->cap[cs2];
 
+                uint64_t cs2_cursor = getCapCursor(c2);
+                CapBounds cap_bounds = getCapBounds(c2);
+            } else if (more_op == 0xc) {
+
+            }
                 s->pc = GET_PC() + 4;
                 JUMP_INSN;
                 break;

@@ -99,3 +99,13 @@ uint64_t inline getCapTop(capability_t cap) { return 1; }
 
 uint64_t inline getBasePermBits(capability_t cap) { return 1; }
 
+CapBounds inline getCapBounds(capability_t cap) {
+  CapBounds cap_bounds;
+  cap_bounds.cs2_top = cap.base;
+  cap_bounds.cs2_base = cap.length;
+  return cap_bounds;
+}
+
+uint64_t inline getCapCursor(capability_t cap) {
+  return 1;
+}

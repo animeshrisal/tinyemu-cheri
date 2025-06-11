@@ -59,6 +59,11 @@ typedef struct {
 
 } RISCVCapabilityState;
 
+typedef struct {
+  uint64_t cs2_base;
+  uint64_t cs2_top;
+} CapBounds;
+
 void insert_entry(capability_t cap);
 capability_t *get_entry(uint64_t base_addr);
 capability_t get_register(int n);
@@ -80,5 +85,8 @@ uint64_t getCapTop(capability_t cap);
 uint64_t getBasePermBits(capability_t cap);
 uint64_t EXTZ(uint64_t flags);
 uint64_t EXTS(uint64_t flags);
-
+CapBounds getCapBounds(capability_t cap);
+uint64_t getCapabilityBaseBits(capability_t cap);
+uint64_t getCapCursor(capability_t cap);
 #endif
+
