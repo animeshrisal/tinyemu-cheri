@@ -78,6 +78,7 @@ capability_t clearTagIfSealed(capability_t cap);
 capability_t unSealCap(capability_t cap);
 uint64_t isCapSealed(capability_t cap);
 uint64_t getCapPerms(capability_t cap);
+capability_t setCapPerms(capability_t cap, uint64_t cap_perm_bits);
 BOOL hasReservedOType(capability_t cap);
 uint64_t getCapabilityBaseBits(capability_t cap);
 uint64_t getCapLength(capability_t cap);
@@ -94,5 +95,15 @@ CapBounds getCapBounds(capability_t cap);
 uint64_t getCapabilityBaseBits(capability_t cap);
 uint64_t getCapCursor(capability_t cap);
 capability_t sealCap(capability_t cap);
+uint64_t getRepresentableAlighmentMask(uint64_t xlenbits);
+
+uint8_t handleIllegal();
+uint8_t handleMemException(uint64_t xlenbits, void ExceptionType);
+uint8_t handleCheriCapException(uint64_t cap_ex, uint64_t capreg_idx);
+uint8_t handleCheriRegException(uint64_t cap_ex, uint64_t capreg_idx);
+uint8_t handleCheriPCCException(uint64_t cap_ex);
+
+
+
 #endif
 

@@ -85,7 +85,7 @@ uint64_t inline getCapLength(capability_t cap) { return 1; }
 
 uint64_t inline getCapOffsetBits(capability_t cap) { return 1; }
 
-uint64_t inline getCapFlags(capability_t cap) { return 1; }
+uint64_t inline getCapFlags(capability_t cap) { return cap.flags; }
 
 uint64_t inline EXTZ(uint64_t flags) { return (uint64_t)flags; }
 
