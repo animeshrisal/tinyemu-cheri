@@ -180,6 +180,8 @@ struct RISCVCPUState {
     RISCVCPUCommonState common; /* must be first */
     
     target_ulong pc;
+    cap_register_t ddc;
+
     target_ulong reg[32];
     cap_register_t cap[32];
 

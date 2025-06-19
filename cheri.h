@@ -17,6 +17,38 @@
 #define CAP_MAX_OTYPE ((1 << CAP_OTYPE_WIDTH) - RESERVED_OTYPES)
 #define CAPS_PER_CACHE_LINE 4
 
+typedef enum ExceptionType {
+    None                          = 0x0,
+    LengthViolation               = 0x1,
+    TagViolation                  = 0x2,
+    SealViolation                 = 0x3,
+    TypeViolation                 = 0x4,
+    CallTrap                      = 0x5,
+    ReturnTrap                    = 0x6,
+    TSSUnderFlow                  = 0x7,
+    UserDefViolation              = 0x8,
+    TLBNoStoreCap                 = 0x9,
+    InexactBounds                 = 0xA,
+    UnalignedBase                 = 0xB,
+    CapLoadGen                    = 0xC,
+
+    GlobalViolation               = 0x10,
+    PermitExecuteViolation        = 0x11,
+    PermitLoadViolation           = 0x12,
+    PermitStoreViolation          = 0x13,
+    PermitLoadCapViolation        = 0x14,
+    PermitStoreCapViolation       = 0x15,
+    PermitStoreLocalCapViolation  = 0x16,
+    PermitSealViolation           = 0x17,
+    AccessSystemRegsViolation     = 0x18,
+    PermitCCallViolation          = 0x19,
+    AccessCCallIDCViolation       = 0x1A,
+    PermitUnsealViolation         = 0x1B,
+    PermitSetCIDViolation         = 0x1C,
+} ExceptionType;
+
+
+
 typedef struct {
   uint64_t base;
   uint64_t length;
@@ -27,6 +59,8 @@ typedef struct {
   uint64_t otype;
   uint8_t tag;
 } cap_register_t;
+
+
 
 typedef cap_register_t capability_t;
 
@@ -60,14 +94,31 @@ typedef struct {
 } RISCVCapabilityState;
 
 typedef struct {
-  uint64_t cs2_base;
-  uint64_t cs2_top;
+  uint64_t base;
+  uint64_t top;
 } CapBounds;
 
 typedef struct {
     BOOL representable;
     capability_t cap;
 } CapAddrResult;
+
+typedef struct {
+    BOOL exact;
+    capability_t cap;
+} SetCapBoundsResult;
+
+typedef struct {
+    BOOL exact;
+    capability_t cap;
+} SetCapAddrResult;
+
+typedef struct {
+    BOOL exact;
+    capability_t cap;
+} SetCapOffsetResult;
+
+
 
 void insert_entry(capability_t cap);
 capability_t *get_entry(uint64_t base_addr);
@@ -76,13 +127,14 @@ capability_t clearTag(capability_t cap);
 capability_t clearTagIf(capability_t cap, BOOL condition);
 capability_t clearTagIfSealed(capability_t cap);
 capability_t unSealCap(capability_t cap);
-uint64_t isCapSealed(capability_t cap);
+BOOL isCapSealed(capability_t cap);
 uint64_t getCapPerms(capability_t cap);
 capability_t setCapPerms(capability_t cap, uint64_t cap_perm_bits);
 BOOL hasReservedOType(capability_t cap);
 uint64_t getCapabilityBaseBits(capability_t cap);
 uint64_t getCapLength(capability_t cap);
 uint64_t getCapOffsetBits(capability_t cap);
+uint64_t setCapOffsetBits(capability_t cap, uint64_t reg);
 uint64_t EXTZ(uint64_t flags);
 uint64_t getCapFlags(capability_t cap);
 uint64_t bool_to_bits(BOOL sealed);
@@ -92,18 +144,27 @@ uint64_t getBasePermBits(capability_t cap);
 uint64_t EXTZ(uint64_t flags);
 uint64_t EXTS(uint64_t flags);
 CapBounds getCapBounds(capability_t cap);
+SetCapBoundsResult setCapBounds(capability_t cap);
+SetCapAddrResult setCapAddr(capability_t cap, uint64_t vl);
+SetCapOffsetResult setCapOffset(capability_t cap, uint64_t vl);
+
 uint64_t getCapabilityBaseBits(capability_t cap);
 uint64_t getCapCursor(capability_t cap);
 capability_t sealCap(capability_t cap);
 uint64_t getRepresentableAlighmentMask(uint64_t xlenbits);
 
 uint8_t handleIllegal();
-uint8_t handleMemException(uint64_t xlenbits, void ExceptionType);
+uint8_t handleMemException(uint64_t xlenbits, ExceptionType type);
 uint8_t handleCheriCapException(uint64_t cap_ex, uint64_t capreg_idx);
 uint8_t handleCheriRegException(uint64_t cap_ex, uint64_t capreg_idx);
 uint8_t handleCheriPCCException(uint64_t cap_ex);
 
+uint64_t toBits(int value, int width);
 
-
+capability_t setCapFlags(capability_t cap, uint64_t rv);
+CapAddrResult incCapOffset(capability_t cap, uint64_t reg);
+BOOL inCapBounds(capability_t cap, uint64_t vl, uint64_t al);
+uint64_t getCapBaseBits(capability_t cap);
+SetCapBoundsResult setCapBounds(capability_t cap);
 #endif
 
