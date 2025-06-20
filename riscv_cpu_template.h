@@ -98,6 +98,66 @@ uint64_t inline truncate(uint64_t val, int width) {
     return val & ((1ULL << width) - 1);
 }
 
+inline BOOL CSpecialRW(int cd, int scr, int cs1, RISCVCapabilityState *cs, RISCVCPUState *s) {
+    SpecialCapabilityRegister info = getSpecialRegInfo(scr, haveNExt(), haveSupMode());
+
+    // if (!info.exists || 
+    //     (info.readOnly && cs1 != 0) || 
+    //     (privLevel_to_bits(cur_privilege()) < privLevel_to_bits(info.requiredPrivilege))) {
+    //     handle_illegal();
+    //     return FALSE;
+    // }
+    // if (info.needsASRPerm && !pcc_access_system_regs()) {
+    //     handle_cheri_cap_exception(CapEx_AccessSystemRegsViolation, (0b1 << 5) | scr);
+    //     return FALSE;
+    // }
+
+    capability_t c1 = s->cap[cs1];
+
+    switch (scr) {
+        case 0: s->cap[cd] = setCapAddr(cs->pcc, 1).cap; break;
+        case 1: s->cap[cd] = cs->ddc; break;
+        case 4: s->cap[cd] = cs->utcc; break;
+        case 5: s->cap[cd] = cs->utdc; break;
+        case 6: s->cap[cd] = cs->uscratchc; break;
+        case 7: s->cap[cd] = legalize_epcc(cs->uepcc); break;
+        case 12: s->cap[cd] = cs->stcc; break;
+        case 13: s->cap[cd] = cs->stdc; break;
+        case 14: s->cap[cd] = cs->sscratchc; break;
+        case 15: s->cap[cd] = legalize_epcc(cs->sepcc); break;
+        case 28: s->cap[cd] = cs->mtcc; break;
+        case 29: s->cap[cd] = cs->mtdc; break;
+        case 30: s->cap[cd] = cs->mscratchc; break;
+        case 31: s->cap[cd] = legalize_epcc(cs->mepcc); break;
+        default: assert(FALSE && "unreachable"); return FALSE;
+    }
+
+        // Write to special register if cs1 is not C0
+    if (cs1 != 0) {
+        switch (scr) {
+            case 1: cs->ddc = c1; break;
+            case 4: cs->utcc = legalize_tcc(cs->utcc, c1); break;
+            case 5: cs->utdc = c1; break;
+            case 6: cs->uscratchc = c1; break;
+            case 7: cs->uepcc = c1; break;
+            case 12: cs->stcc = legalize_tcc(cs->stcc, c1); break;
+            case 13: cs->stdc = c1; break;
+            case 14: cs->sscratchc = c1; break;
+            case 15: cs->sepcc = c1; break;
+            case 28: cs->mtcc = legalize_tcc(cs->mtcc, c1); break;
+            case 29: cs->mtdc = c1; break;
+            case 30: cs->mscratchc = c1; break;
+            case 31: cs->mepcc = c1; break;
+            default: assert(FALSE && "unreachable"); return FALSE;
+        }
+        // if (get_config_print_reg()) {
+        //     //printf("%s <- %s\n", scr_name_map(scr), RegStr(cs1));
+        // }
+    }
+
+    return TRUE;
+}
+
 #elif XLEN == 64 && defined(HAVE_INT128)
 
 static inline uint64_t mulh64(int64_t a, int64_t b)
@@ -323,7 +383,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
             case 0x5b:
                 printf("Got here\n");
-                uint32_t more_op = (insn >> 25) & 0x7f;
+                uint32_t more_op =(insn >> 25) & 0x7f;
                 capability_t c = s->cap[cs1];
 
                 if(more_op == 0x7f) {
@@ -376,7 +436,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                         break;
                     case 0xc:
-                        uint64_t imm = (insn >> 20) && 0x1f; 
+                        uint64_t imm = (insn >> 20) & 0x1f; 
                         // JALR.CAP cd, cs1
                         uint64_t xlenbits = EXTS(imm);
 
@@ -398,8 +458,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     case 0x12:
                         break;
                 }
-            } else if(more_op == 0x1) {
-
+            } else if(more_op == 0x1 || more_op == 0x2) {
+                printf("CSpecialRW");
+                
             } 
             else if(more_op == 0xb) {
                 //CSeal 
@@ -453,6 +514,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 capability_t inCap = clearTagIfSealed(c1);
                 capability_t newCap = setCapPerms(inCap, perms & mask);
                 s->cap[cd] = newCap;
+
             } else if(more_op == 0xe) {
 
                 //CSetFlags
@@ -479,14 +541,18 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 uint64_t rs2 = s->reg[rs2];
                 capability_t inCap = clearTagIfSealed(c1);
                 SetCapAddrResult result = setCapAddr(inCap, rs2);
-                s->cap[cd] = clearTagIf(result.cap, 1);
+                s->cap[cd] = clearTagIf(result.cap, !result.exact);
+
             } else if(more_op == 0x11) {
                 // CincOffset
                 capability_t c1 = s->cap[cs1];
                 uint64_t rs2 = s->reg[rs2];
+
                 capability_t inCap = clearTagIfSealed(c1);
+
                 CapAddrResult result = incCapOffset(inCap, rs2);
-                s->cap[cd] = clearTagIf(result.cap, 1);
+                s->cap[cd] = clearTagIf(result.cap, !result.success);
+
             } else if(more_op == 0x8) {
                 //CSetBounds
 
@@ -514,7 +580,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                 SetCapBoundsResult result = setCapBounds(inCap);
                 s->cap[cd] = clearTagIf(result.cap, !(inBounds && result.exact));
-            } else if( more_op = 0x12) {
+            } else if( more_op ==0x12) {
                 capability_t c2 = (cs2 == 0) ? s->ddc : s->cap[cs2];
                 capability_t c1 = s->cap[cs1];
 
@@ -522,7 +588,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     ? 0
                     : (c1.base - getCapBaseBits(c2));
 
-            } else if(more_op = 0x13) {
+            } else if(more_op ==0x13) {
                 capability_t cs1_val = (cs1 == 0) ? s->ddc : s->cap[cs1];
                 uint64_t rs2_val = s->reg[rs2];
 
@@ -539,7 +605,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 }
 
 
-            } else if(more_op = 0x20) {
+            } else if(more_op ==0x20) {
                 capability_t cs1_val = (cs1 == 0) ? s->ddc : s->cap[cs1];
                 capability_t cs2_val = s->cap[cs2];
 
@@ -564,12 +630,12 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                 s->reg[rd] = EXTZ(result);
 
-            } else if(more_op = 0x21) {
+            } else if(more_op ==0x21) {
                 capability_t cs1_val = s->cap[cs1];
                 capability_t cs2_val = s->cap[cs2];
                 // s->reg[rd] = EXTZ(bool_to_bits(capability_equals(cs1_val, cs2_val)));
 
-            } else if(more_op = 0x16) {
+            } else if(more_op ==0x16) {
                 // CSetHigh
 
                 capability_t capVal = s->cap[cs1];
@@ -645,7 +711,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 JUMP_INSN;
                 break;
             case 0x9cc:
-                uint32_t x = (insn >> 25) && 0x7F;
+                uint32_t x = (insn >> 25) & 0x7F;
                 switch(x) {
                     case 0xb:
                         break;

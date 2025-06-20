@@ -17,6 +17,7 @@
 #define CAP_MAX_OTYPE ((1 << CAP_OTYPE_WIDTH) - RESERVED_OTYPES)
 #define CAPS_PER_CACHE_LINE 4
 
+
 typedef enum ExceptionType {
     None                          = 0x0,
     LengthViolation               = 0x1,
@@ -93,13 +94,19 @@ typedef struct {
 
 } RISCVCapabilityState;
 
+typedef enum {
+  USER,
+  SUPERVISOR,
+  MACHINE
+} Privilege;
+
 typedef struct {
   uint64_t base;
   uint64_t top;
 } CapBounds;
 
 typedef struct {
-    BOOL representable;
+    BOOL success;
     capability_t cap;
 } CapAddrResult;
 
@@ -114,10 +121,16 @@ typedef struct {
 } SetCapAddrResult;
 
 typedef struct {
-    BOOL exact;
+    BOOL success;
     capability_t cap;
 } SetCapOffsetResult;
 
+typedef struct {
+  BOOL specialExists;
+  BOOL ro;
+  uint8_t privilege;
+  BOOL needASR;
+} SpecialCapabilityRegister;
 
 
 void insert_entry(capability_t cap);
@@ -166,5 +179,13 @@ CapAddrResult incCapOffset(capability_t cap, uint64_t reg);
 BOOL inCapBounds(capability_t cap, uint64_t vl, uint64_t al);
 uint64_t getCapBaseBits(capability_t cap);
 SetCapBoundsResult setCapBounds(capability_t cap);
+
+void capSpecialRW();
+SpecialCapabilityRegister getSpecialRegInfo(uint64_t csr, BOOL val, Privilege priv);
+BOOL haveNExt();
+BOOL haveSupMode();
+capability_t legalize_epcc(capability_t cap);
+capability_t legalize_tcc(capability_t cap1, capability_t cap2);
+
 #endif
 

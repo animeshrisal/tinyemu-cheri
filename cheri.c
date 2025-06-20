@@ -18,8 +18,6 @@ typedef struct {
 cap_table_t table;
 
 
-
-
 static inline uint64_t cap_top(const capability_t *cap) {
   return cap->base + cap->length;
 }
@@ -165,7 +163,101 @@ uint64_t getCapBaseBits(capability_t cap) {
   return 1;
 }
 
-
 capability_t setCapPerms(capability_t cap, uint64_t cap_perm_bits) {
   return cap;
 }
+
+SpecialCapabilityRegister getSpecialRegInfo(uint64_t csr, BOOL val, Privilege priv) {
+  int haveNExt = 1;
+  int haveSupMode = 1;
+
+  switch(csr) {
+      case 0: return (SpecialCapabilityRegister){TRUE, TRUE, USER, FALSE};
+      case 1: return (SpecialCapabilityRegister){TRUE, FALSE, USER, FALSE};
+      case 4: case 5: case 6: case 7:
+        if (haveNExt) return (SpecialCapabilityRegister){TRUE, FALSE, USER, TRUE}; break;
+      case 12: case 13: case 14: case 15:
+        if (haveSupMode) return (SpecialCapabilityRegister){TRUE, FALSE, SUPERVISOR, TRUE}; break;
+      case 28: case 29: case 30: case 31:
+        return (SpecialCapabilityRegister){TRUE, FALSE, MACHINE, TRUE};
+      default: return (SpecialCapabilityRegister){FALSE, TRUE, MACHINE, TRUE};
+    }
+    return (SpecialCapabilityRegister){FALSE, TRUE, MACHINE, TRUE};
+  }
+
+  BOOL inline haveNExt() {
+    return TRUE;
+  }
+
+  BOOL inline haveSupMode() {
+    return MACHINE;
+  }
+
+  capability_t legalize_epcc(capability_t cap) {
+    return cap;
+  }
+
+  capability_t legalize_tcc(capability_t cap1, capability_t cap2) {
+    return cap1;
+  }
+
+
+// inline BOOL CSpecialRW(int cd, int scr, int cs1, RISCVCapabilityState cs, RISCVCPUState s) {
+//     SpecialCapabilityRegister info = getSpecialRegInfo(scr, haveNExt(), haveSupMode());
+
+//     // if (!info.exists || 
+//     //     (info.readOnly && cs1 != 0) || 
+//     //     (privLevel_to_bits(cur_privilege()) < privLevel_to_bits(info.requiredPrivilege))) {
+//     //     handle_illegal();
+//     //     return FALSE;
+//     // }
+//     // if (info.needsASRPerm && !pcc_access_system_regs()) {
+//     //     handle_cheri_cap_exception(CapEx_AccessSystemRegsViolation, (0b1 << 5) | scr);
+//     //     return FALSE;
+//     // }
+
+//     capability_t cs1 = s->cd[cs1];
+
+//     switch (scr) {
+//         case 0: s->cap(cd) = setCapAddr(state.pcc, state.pcc).second; break;
+//         case 1: s->cap(cd) = state.ddc; break;
+//         case 4: s->cap(cd) = state.utcc; break;
+//         case 5: s->cap(cd) = state.utdc; break;
+//         case 6: s->cap(cd) = state.uscratchc; break;
+//         case 7: s->cap(cd) = legalize_epcc(state.uepcc); break;
+//         case 12: s->cap(cd) = state.stcc; break;
+//         case 13: s->cap(cd) = state.stdc; break;
+//         case 14: s->cap(cd) = state.sscratchc; break;
+//         case 15: s->cap(cd) = legalize_epcc(state.sepcc); break;
+//         case 28: s->cap(cd) = state.mtcc; break;
+//         case 29: s->cap(cd) = state.mtdc; break;
+//         case 30: s->cap(cd) = state.mscratchc; break;
+//         case 31: s->cap(cd) = legalize_epcc(state.mepcc); break;
+//         default: assert(FALSE && "unreachable"); return FALSE;
+//     }
+
+//         // Write to special register if cs1 is not C0
+//     if (cs1 != 0) {
+//         switch (scr) {
+//             case 1: state.ddc; = cs1; break;
+//             case 4: state.utcc = legalize_tcc(state.utcc, cs1); break;
+//             case 5: state.utdc = cs1; break;
+//             case 6: state.uscratchc = cs1; break;
+//             case 7: state.uepcc = cs1; break;
+//             case 12: state.stcc = legalize_tcc(statie.stcc, cs1); break;
+//             case 13: state.stdc = cs1; break;
+//             case 14: state.sscratchc = cs1; break;
+//             case 15: state.sepcc = cs1; break;
+//             case 28: state.mtcc = legalize_tcc(state.mtcc, cs1); break;
+//             case 29: state.mtdc = cs1; break;
+//             case 30: state.mscratchc = cs1; break;
+//             case 31: state.mepcc = cs1; break;
+//             default: assert(FALSE && "unreachable"); return FALSE;
+//         }
+//         if (get_config_print_reg()) {
+//             printf("%s <- %s\n", scr_name_map(scr), RegStr(cs1));
+//         }
+//     }
+
+//     return TRUE;
+// }
