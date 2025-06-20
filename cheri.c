@@ -44,60 +44,60 @@ capability_t get_register(int n) {
 
 }
 
-// BOOL setCapBounds (capability_t cap, cap_address_bits_t a, cap_len_bits_t l,
+// BOOL set_cap_bounds (capability_t cap, cap_address_bits_t a, cap_len_bits_t l,
 // capability_t *cap) {
 
 // }
 
-// BOOL setCapAddr (capability_t cap, cap_address_bits_t a, capability_t
+// BOOL set_cap_addr (capability_t cap, cap_address_bits_t a, capability_t
 // *capability) {
 
 // }
 
-capability_t inline clearTag(capability_t cap) {
+capability_t inline clear_tag(capability_t cap) {
   cap.tag = 0;
   return cap;
 }
 
-capability_t inline clearTagIf(capability_t cap, BOOL bool) {
+capability_t inline clear_tag_if(capability_t cap, BOOL bool) {
   if (bool == 1) {
     cap.tag = 1;
   }
   return cap;
 }
 
-capability_t inline clearTagIfSealed(capability_t cap) {
-  if(isCapSealed(cap)) {
+capability_t inline clear_tag_if_sealed(capability_t cap) {
+  if(is_cap_sealed(cap)) {
     cap.tag = 0;
   }
   return cap; 
 }
 
-capability_t inline sealCap(capability_t cap) { 
+capability_t inline seal_cap(capability_t cap) { 
   return cap;
 }
 
-capability_t inline unSealCap(capability_t cap) { return cap; }
+capability_t inline unseal_cap(capability_t cap) { return cap; }
 
-BOOL inline isCapSealed(capability_t cap) { 
+BOOL inline is_cap_sealed(capability_t cap) { 
   return cap.otype == 1 ? 1 : 0;
 }
 
-uint64_t inline getCapPerms(capability_t cap) {
+uint64_t inline get_cap_perms(capability_t cap) {
   return (uint64_t)cap.permissions;
 }
 
-BOOL inline hasReservedOType(capability_t cap) {
+BOOL inline has_reserved_otype(capability_t cap) {
   return (uint64_t)cap.otype;
 }
 
-uint64_t inline getCapabilityBaseBits(capability_t cap) { return 1; }
+uint64_t inline get_capability_base_bits(capability_t cap) { return 1; }
 
-uint64_t inline getCapLength(capability_t cap) { return (uint64_t)cap.length; }
+uint64_t inline get_cap_length(capability_t cap) { return (uint64_t)cap.length; }
 
-uint64_t inline getCapOffsetBits(capability_t cap) { return (uint64_t)cap.offset; }
+uint64_t inline get_cap_offset_bits(capability_t cap) { return (uint64_t)cap.offset; }
 
-uint64_t inline getCapFlags(capability_t cap) { return cap.flags; }
+uint64_t inline get_cap_flags(capability_t cap) { return cap.flags; }
 
 uint64_t inline EXTZ(uint64_t flags) { return (uint64_t)flags; }
 
@@ -105,52 +105,52 @@ uint64_t inline EXTS(uint64_t flags) { return (uint64_t)flags | ~0ULL; }
 
 uint64_t inline bool_to_bits(BOOL sealed) { return 1; }
 
-uint64_t inline getCapHigh(capability_t cap) { return 1; }
+uint64_t inline get_cap_high(capability_t cap) { return 1; }
 
-uint64_t inline getCapTop(capability_t cap) { return 1; }
+uint64_t inline get_cap_top(capability_t cap) { return 1; }
 
-uint64_t inline getBasePermBits(capability_t cap) { return (uint64_t)cap.base; }
+uint64_t inline get_base_perm_bits(capability_t cap) { return (uint64_t)cap.base; }
 
-CapBounds inline getCapBounds(capability_t cap) {
+CapBounds inline get_cap_bounds(capability_t cap) {
   CapBounds cap_bounds;
   cap_bounds.top = cap.base;
   cap_bounds.base = cap.length;
   return cap_bounds;
 }
 
-uint64_t inline getCapCursor(capability_t cap) {
+uint64_t inline get_cap_cursor(capability_t cap) {
   return 1;
 }
 
-uint64_t inline toBits(int value, int width) {
+uint64_t inline to_bits(int value, int width) {
   return (uint64_t)(value & ((1ULL << width) - 1 ));
 }
 
-SetCapOffsetResult setCapOffset(capability_t cap, uint64_t val) {
+SetCapOffsetResult set_cap_offset(capability_t cap, uint64_t val) {
   SetCapOffsetResult result;
   return result;
 };
 
 
-SetCapBoundsResult setCapBounds(capability_t cap) {
+SetCapBoundsResult set_cap_bounds(capability_t cap) {
   SetCapBoundsResult result;
   return result;
 };
 
-capability_t setCapFlags(capability_t cap, uint64_t rv) {
+capability_t set_cap_flags(capability_t cap, uint64_t rv) {
   return cap;
 }
 
-uint64_t setCapOffsetBits(capability_t cap, uint64_t reg) { 
+uint64_t set_cap_offsetBits(capability_t cap, uint64_t reg) { 
   return 1;
 };
 
-SetCapAddrResult setCapAddr(capability_t cap, uint64_t vl) {
+SetCapAddrResult set_cap_addr(capability_t cap, uint64_t vl) {
   SetCapAddrResult cap2;
   return cap2;
 }
 
-CapAddrResult incCapOffset(capability_t cap, uint64_t reg) {
+CapAddrResult inc_cap_offset(capability_t cap, uint64_t reg) {
   CapAddrResult addr;
   return addr;
 }
@@ -159,15 +159,15 @@ BOOL inCapBounds(capability_t cap, uint64_t vl, uint64_t al) {
 
 }
 
-uint64_t getCapBaseBits(capability_t cap) {
+uint64_t get_cap_base_bits(capability_t cap) {
   return 1;
 }
 
-capability_t setCapPerms(capability_t cap, uint64_t cap_perm_bits) {
+capability_t set_cap_perms(capability_t cap, uint64_t cap_perm_bits) {
   return cap;
 }
 
-SpecialCapabilityRegister getSpecialRegInfo(uint64_t csr, BOOL val, Privilege priv) {
+SpecialCapabilityRegister get_special_reg_info(uint64_t csr, BOOL val, Privilege priv) {
   int haveNExt = 1;
   int haveSupMode = 1;
 
@@ -203,7 +203,7 @@ SpecialCapabilityRegister getSpecialRegInfo(uint64_t csr, BOOL val, Privilege pr
 
 
 // inline BOOL CSpecialRW(int cd, int scr, int cs1, RISCVCapabilityState cs, RISCVCPUState s) {
-//     SpecialCapabilityRegister info = getSpecialRegInfo(scr, haveNExt(), haveSupMode());
+//     SpecialCapabilityRegister info = get_special_reg_info(scr, haveNExt(), haveSupMode());
 
 //     // if (!info.exists || 
 //     //     (info.readOnly && cs1 != 0) || 
@@ -219,7 +219,7 @@ SpecialCapabilityRegister getSpecialRegInfo(uint64_t csr, BOOL val, Privilege pr
 //     capability_t cs1 = s->cd[cs1];
 
 //     switch (scr) {
-//         case 0: s->cap(cd) = setCapAddr(state.pcc, state.pcc).second; break;
+//         case 0: s->cap(cd) = set_cap_addr(state.pcc, state.pcc).second; break;
 //         case 1: s->cap(cd) = state.ddc; break;
 //         case 4: s->cap(cd) = state.utcc; break;
 //         case 5: s->cap(cd) = state.utdc; break;
