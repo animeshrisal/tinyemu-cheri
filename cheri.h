@@ -176,7 +176,7 @@ uint64_t to_bits(int value, int width);
 
 capability_t set_cap_flags(capability_t cap, uint64_t rv);
 CapAddrResult inc_cap_offset(capability_t cap, uint64_t reg);
-BOOL inCapBounds(capability_t cap, uint64_t vl, uint64_t al);
+BOOL in_cap_bounds(capability_t cap, uint64_t vl, uint64_t al);
 uint64_t get_cap_base_bits(capability_t cap);
 SetCapBoundsResult set_cap_bounds(capability_t cap);
 

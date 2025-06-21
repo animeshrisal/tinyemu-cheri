@@ -155,7 +155,7 @@ CapAddrResult inc_cap_offset(capability_t cap, uint64_t reg) {
   return addr;
 }
 
-BOOL inCapBounds(capability_t cap, uint64_t vl, uint64_t al) {
+BOOL in_cap_bounds(capability_t cap, uint64_t vl, uint64_t al) {
 
 }
 
