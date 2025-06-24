@@ -98,7 +98,7 @@ uint64_t inline truncate(uint64_t val, int width) {
     return val & ((1ULL << width) - 1);
 }
 
-inline BOOL CSpecialRW(int cd, int scr, int cs1, RISCVCapabilityState *cs, RISCVCPUState *s) {
+static inline BOOL cspecial_rw(int cd, int scr, int cs1, RISCVCapabilityState *cs, RISCVCPUState *s) {
     SpecialCapabilityRegister info = get_special_reg_info(scr, haveNExt(), haveSupMode());
 
     // if (!info.exists || 
@@ -367,6 +367,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         opcode = insn & 0x7f;
 
         if(insn != 0) {
+            printf("%x \n", insn);
         }
         rd = (insn >> 7) & 0x1f;
         rs1 = (insn >> 15) & 0x1f;
@@ -432,6 +433,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                         break;
                     case 0xc:
+                        printf("Got here!\n");
                         uint64_t imm = (insn >> 20) & 0x1f; 
                         // JALR.CAP cd, cs1
                         uint64_t xlenbits = EXTS(imm);
@@ -447,7 +449,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                             handle_cheri_reg_exception(PermitExecuteViolation, 1);
                         } else if(1 == 0) {
                             //hello world
-                        } else if(1 == 1) {
+                        } else if(1 == 2) {
                             handle_mem_exception(new_pc, PermitExecuteViolation);
                             break;
                         } else if (!(in_cap_bounds(c, new_pc, 1))) {
@@ -475,8 +477,11 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                         break;
                 }
             } else if(more_op == 0x1) {
+                uint64_t scr = insn >> 20 && 0x1f;
+                uint64_t cs1 = insn >> 15 && 0x1f;
+
                 printf("%x, %d: CSpecialRW\n", insn, more_op);
-                
+                cspecial_rw(cd, scr, cs1, &s->cap_state, &s);
             } 
             else if(more_op == 0xb) {
                 //CSeal 
