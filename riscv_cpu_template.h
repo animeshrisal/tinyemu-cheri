@@ -527,23 +527,24 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
             } else if(more_op == 0xd) {
                 //CAndPerm
-
                 capability_t c1 = s->cap[cs1];
-                uint64_t rs2 = s->reg[rs2];
+                uint64_t r2 = s->reg[rs2];
+
                 uint64_t perms = get_cap_perms(c1);
-                uint64_t mask = truncate(rs2, 1);
+                uint64_t mask = truncate(r2, 1);
                 capability_t inCap = clear_tag_if_sealed(c1);
                 capability_t newCap = set_cap_perms(inCap, perms & mask);
                 s->cap[cd] = newCap;
+                printf("got here2\n");
 
             } else if(more_op == 0xe) {
 
                 //CSetFlags
 
                 capability_t c1 = s->cap[cs1];
-                uint64_t rs2 = s->reg[rs2];
+                uint64_t r2 = s->reg[rs2];
                 capability_t inCap = clear_tag_if_sealed(c1);
-                capability_t newCap = set_cap_flags(inCap, truncate(rs2, CAP_FLAGS_WIDTH));
+                capability_t newCap = set_cap_flags(inCap, truncate(r2, CAP_FLAGS_WIDTH));
                 s->cap[cd] = newCap;
             } else if(more_op == 0xf) {
                 //CSetOffset
@@ -559,20 +560,20 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 // CSetAddr 
 
                 capability_t c1 = s->cap[cs1];
-                uint64_t rs2 = s->reg[rs2];
+                uint64_t r2 = s->reg[rs2];
                 capability_t inCap = clear_tag_if_sealed(c1);
-                SetCapAddrResult result = set_cap_addr(inCap, rs2);
+                SetCapAddrResult result = set_cap_addr(inCap, r2);
                 s->cap[cd] = clear_tag_if(result.cap, !result.exact);
 
             } else if(more_op == 0x11) {
                 // CincOffset
                 
                 capability_t c1 = s->cap[cs1];
-                uint64_t rs2 = s->reg[rs2];
+                uint64_t r2 = s->reg[rs2];
 
                 capability_t inCap = clear_tag_if_sealed(c1);
 
-                CapAddrResult result = inc_cap_offset(inCap, rs2);
+                CapAddrResult result = inc_cap_offset(inCap, r2);
                 s->cap[cd] = clear_tag_if(result.cap, !result.success);
 
             } else if(more_op == 0x8) {
