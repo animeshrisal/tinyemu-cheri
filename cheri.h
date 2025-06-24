@@ -166,11 +166,11 @@ uint64_t get_cap_cursor(capability_t cap);
 capability_t seal_cap(capability_t cap);
 uint64_t getRepresentableAlighmentMask(uint64_t xlenbits);
 
-uint8_t handleIllegal();
-uint8_t handleMemException(uint64_t xlenbits, ExceptionType type);
-uint8_t handleCheriCapException(uint64_t cap_ex, uint64_t capreg_idx);
-uint8_t handleCheriRegException(uint64_t cap_ex, uint64_t capreg_idx);
-uint8_t handleCheriPCCException(uint64_t cap_ex);
+uint8_t handle_illegal();
+uint8_t handle_mem_exception(uint64_t xlenbits, ExceptionType type);
+uint8_t handle_cheri_cap_exception(uint64_t cap_ex, uint64_t capreg_idx);
+uint8_t handle_cheri_reg_exception(uint64_t cap_ex, uint64_t capreg_idx);
+uint8_t handle_cheri_pcc_exception(uint64_t cap_ex);
 
 uint64_t to_bits(int value, int width);
 

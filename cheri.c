@@ -201,6 +201,14 @@ SpecialCapabilityRegister get_special_reg_info(uint64_t csr, BOOL val, Privilege
     return cap1;
   }
 
+  uint8_t handle_cheri_reg_exception(uint64_t cap_ex, uint64_t capreg_idx) {
+
+  }
+
+  uint8_t handle_mem_exception(uint64_t xlenbits, ExceptionType type) {
+    
+  }
+
 
 // inline BOOL CSpecialRW(int cd, int scr, int cs1, RISCVCapabilityState cs, RISCVCPUState s) {
 //     SpecialCapabilityRegister info = get_special_reg_info(scr, haveNExt(), haveSupMode());

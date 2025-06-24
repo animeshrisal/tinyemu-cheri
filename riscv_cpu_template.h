@@ -363,9 +363,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         }
         s->n_cycles--;
 
-        if(insn != 0) {
-            printf("%x\n", insn);
-        }
+
         opcode = insn & 0x7f;
 
         if(insn != 0) {
@@ -380,9 +378,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         
 
         switch(opcode) {
-
             case 0x5b:
-                printf("Got here\n");
                 uint32_t more_op =(insn >> 25) & 0x7f;
                 capability_t c = s->cap[cs1];
 
@@ -432,17 +428,37 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     case 0xb:
                         // CClearTag
                         c.tag = 0;
-                        s->cap[cd] = s->cap[cs1];
+                        s->cap[cd] = c;
 
                         break;
                     case 0xc:
                         uint64_t imm = (insn >> 20) & 0x1f; 
                         // JALR.CAP cd, cs1
                         uint64_t xlenbits = EXTS(imm);
-
-                        //recheck this later
+                        uint64_t new_pc = c.base;
                         s->pc = c.base + xlenbits & (1ULL - 1);
-                        // s->cap_state.pcc = get_capability_base_bits(c);
+                        if(!c.tag) {
+                            handle_cheri_reg_exception(TagViolation, 1);
+                            break;
+                        } else if(is_cap_sealed(c) && (((int64_t)c.otype) | imm != 0)) {
+                            handle_cheri_reg_exception(SealViolation, 1);
+                            break;
+                        } else if(!(c.permissions >> 1)) {
+                            handle_cheri_reg_exception(PermitExecuteViolation, 1);
+                        } else if(1 == 0) {
+                            //hello world
+                        } else if(1 == 1) {
+                            handle_mem_exception(new_pc, PermitExecuteViolation);
+                            break;
+                        } else if (!(in_cap_bounds(c, new_pc, 1))) {
+                            handle_cheri_reg_exception(LengthViolation, 1);
+                            break;
+                        } else {
+                            SetCapAddrResult cap_addr = set_cap_addr(s->cap_state.pcc, s-> pc + 4);
+                            s->cap[cd] = seal_cap(cap_addr.cap);
+                            s->pc = new_pc;
+                            s->cap_state.pcc = unseal_cap(c);
+                        }
                         break;
                     case 0x14:
                         // JALR.PCC
@@ -458,8 +474,8 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     case 0x12:
                         break;
                 }
-            } else if(more_op == 0x1 || more_op == 0x2) {
-                printf("CSpecialRW");
+            } else if(more_op == 0x1) {
+                printf("%x, %d: CSpecialRW\n", insn, more_op);
                 
             } 
             else if(more_op == 0xb) {
@@ -545,6 +561,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
             } else if(more_op == 0x11) {
                 // CincOffset
+                
                 capability_t c1 = s->cap[cs1];
                 uint64_t rs2 = s->reg[rs2];
 
@@ -562,7 +579,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 uint64_t newBase = c1.base;
                 uint64_t newTop = EXTZ(newBase) + EXTZ(rs2);
 
-                BOOL inBounds = inCapBounds(c1, newBase, (uint64_t)rs2);
+                BOOL inBounds = in_cap_bounds(c1, newBase, (uint64_t)rs2);
                 capability_t inCap = clear_tag_if_sealed(c1);
 
                 SetCapBoundsResult result = set_cap_bounds(inCap);
@@ -575,7 +592,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 uint64_t newBase = c1.base;
                 uint64_t newTop = EXTZ(newBase) + EXTZ(rs2);
 
-                BOOL inBounds = inCapBounds(c1, newBase, (uint64_t)rs2);
+                BOOL inBounds = in_cap_bounds(c1, newBase, (uint64_t)rs2);
                 capability_t inCap = clear_tag_if_sealed(c1);
 
                 SetCapBoundsResult result = set_cap_bounds(inCap);
