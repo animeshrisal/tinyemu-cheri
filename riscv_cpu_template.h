@@ -112,8 +112,8 @@ static inline BOOL cspecial_rw(int cd, int scr, int cs1, RISCVCapabilityState *c
     //     return FALSE;
     // }
 
+    
     capability_t c1 = s->cap[cs1];
-
     switch (scr) {
         case 0: s->cap[cd] = set_cap_addr(cs->pcc, 1).cap; break;
         case 1: s->cap[cd] = cs->ddc; break;
@@ -414,14 +414,18 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cd = rd;
 
         if(insn != 0) {
-            printf("%x \n", insn);
+            printf("insn: %x \n", insn);
+            printf("pc: %x \n", s->pc);
         }
-uint64_t offset = (insn >> 12) & 0x7;
+
+        if(insn == 0x1617a006) {
+            s->pc = GET_PC() + 2;
+            JUMP_INSN;
+        }
+        uint64_t offset = (insn >> 12) & 0x7;
+        printf("new offset: %d opcode: %d\n", offset, opcode);
         switch(opcode) {
             case 0x5b:
-            
-
-            
                 uint32_t more_op =(insn >> 25) & 0x7f;
                 capability_t c = s->cap[cs1];
 
@@ -443,13 +447,9 @@ uint64_t offset = (insn >> 12) & 0x7;
                         printf("Got here again bozo\n");
                     CapAddrResult result = inc_cap_offset(inCap, imm);
                     s->cap[cd] = clear_tag_if(result.cap, !result.success);
-
-
-                    
-
                 }
 
-                if(more_op == 0x7f) {
+                else if(more_op == 0x7f) {
                 switch(cs2) {
                     //Capability inspection instruction
                     case 0x0:
@@ -1270,7 +1270,7 @@ uint64_t offset = (insn >> 12) & 0x7;
                             val = GET_PC() + 4;
 
                             s->reg[1] = val;
-                            capability_print(s->cap[cd], cd);
+                             capability_print(s->cap[cd], cd);
                             JUMP_INSN;
                         }
                     } else {
