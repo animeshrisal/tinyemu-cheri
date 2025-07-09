@@ -2,6 +2,7 @@
 #include "cutils.h"
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #define MAX_COUNTER 1000
 int counter = 0;
@@ -127,6 +128,7 @@ uint64_t inline to_bits(int value, int width) {
 }
 
 SetCapOffsetResult set_cap_offset(capability_t cap, uint64_t val) {
+
   SetCapOffsetResult result;
   return result;
 };
@@ -138,6 +140,7 @@ SetCapBoundsResult set_cap_bounds(capability_t cap) {
 };
 
 capability_t set_cap_flags(capability_t cap, uint64_t rv) {
+  cap.flags = rv;
   return cap;
 }
 
@@ -145,13 +148,22 @@ uint64_t set_cap_offsetBits(capability_t cap, uint64_t reg) {
   return 1;
 };
 
+
+
 SetCapAddrResult set_cap_addr(capability_t cap, uint64_t vl) {
-  SetCapAddrResult cap2;
-  return cap2;
+  capability_t new_cap = cap;
+  new_cap.offset = (uint64_t)(vl);
+  
+  BOOL within_bounds = (vl >= cap.base) && (vl < cap.base + cap.length);
+  // BOOL representable = within_bounds && capBoundsEqual(cap, new_cap);
+
+  SetCapAddrResult result = { 1, new_cap };
+  return result;
 }
 
 CapAddrResult inc_cap_offset(capability_t cap, uint64_t reg) {
-  CapAddrResult addr;
+  cap.offset += reg;
+  CapAddrResult addr = { 1, cap };
   return addr;
 }
 
@@ -164,6 +176,12 @@ uint64_t get_cap_base_bits(capability_t cap) {
 }
 
 capability_t set_cap_perms(capability_t cap, uint64_t cap_perm_bits) {
+  cap.permissions = cap_perm_bits;
+  return cap;
+}
+
+capability_t set_cap_uperms(capability_t cap, uint64_t cap_perm_bits) {
+  cap.uperissions = cap_perm_bits;
   return cap;
 }
 
@@ -208,3 +226,63 @@ SpecialCapabilityRegister get_special_reg_info(uint64_t csr, BOOL val, Privilege
   uint8_t handle_mem_exception(uint64_t xlenbits, ExceptionType type) {
     
   }
+
+const char* cheri_reg_name(int index) {
+    switch (index) {
+        case 0:  return "cnull";   // zero register
+        case 1:  return "cra";     // stack pointer
+        case 2:  return "csp";     // return address
+        case 3:  return "cgp";     // global pointer
+        case 4:  return "ctp";     // thread pointer
+        case 5:  return "ct0";      // reserved or ABI-defined
+        case 6:  return "ct1";      // reserved or ABI-defined
+        case 7:  return "ct2";     // frame pointer
+
+        case 8:  return "cs0";
+        case 9:  return "cs1";
+        case 10: return "ca0";
+        case 11: return "ca1";
+        case 12: return "ca2";
+        case 13: return "ca3";
+        case 14: return "ca4";
+        case 15: return "ca5";
+
+        case 16: return "ca6";
+        case 17: return "ca7";
+        case 18: return "cs2";
+        case 19: return "cs3";
+        case 20: return "cs5";
+        case 21: return "cs6";
+        case 22: return "cs6";
+        case 23: return "cs7";
+        case 24: return "cs8";
+        case 25: return "cs9";
+        case 26: return "cs10";
+
+        case 27: return "cs11";
+        case 28: return "ct3";
+        case 29: return "ct4";
+        case 30: return "ct5";
+        case 31: return "ct6";
+        case 32: return "pcc";
+        case 33: return "ddc";
+
+        default: return "invalid";
+    }
+}
+
+void capability_print(cap_register_t cap, int index) {
+    const char* reg_name = cheri_reg_name(index);
+    printf("--------- Capability Register %s ---------\n", reg_name);
+    printf("Base       : 0x%llx\n", cap.base);
+    printf("Length     : 0x%llx\n", cap.length);
+    printf("Offset     : 0x%llx\n", cap.offset);
+    printf("Permissions: 0x%llx\n", cap.permissions);
+    printf("Uperissions: 0x%llx\n", cap.uperissions); 
+    printf("Flags      : 0x%llx\n", cap.flags);
+    printf("Otype      : 0x%llx\n", cap.otype);
+    printf("Tag        : 0x%x\n", cap.tag);
+    printf("Cursor     : 0x%llx\n", cap._cap_cursor);
+    printf("--------------------------------\n");
+}
+

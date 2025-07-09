@@ -9,7 +9,7 @@
 #define CAP_SIZE 16
 #define CAP_MANTISSA_WIDTH 14
 #define CAP_HPERMS_WIDTH 14
-#define CAP_UPERMS_WIDTH 4
+#define CAP_UPERMS_WIDTH 4  
 #define CAP_UPERMS_SHIFT 15
 #define CAP_FLAGS_WIDTH 1
 #define CAP_OTYPE_WIDTH 18
@@ -59,6 +59,7 @@ typedef struct {
   uint64_t flags;
   uint64_t otype;
   uint8_t tag;
+  uint64_t _cap_cursor;
 } cap_register_t;
 
 
@@ -143,6 +144,7 @@ capability_t unseal_cap(capability_t cap);
 BOOL is_cap_sealed(capability_t cap);
 uint64_t get_cap_perms(capability_t cap);
 capability_t set_cap_perms(capability_t cap, uint64_t cap_perm_bits);
+capability_t set_cap_uperms(capability_t cap, uint64_t cap_perm_bits);
 BOOL has_reserved_otype(capability_t cap);
 uint64_t get_capability_base_bits(capability_t cap);
 uint64_t get_cap_length(capability_t cap);
@@ -186,6 +188,6 @@ BOOL haveNExt();
 BOOL haveSupMode();
 capability_t legalize_epcc(capability_t cap);
 capability_t legalize_tcc(capability_t cap1, capability_t cap2);
-
+void capability_print(cap_register_t cap, int index);
 #endif
 
