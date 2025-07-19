@@ -1114,7 +1114,6 @@ static void copy_bios(RISCVMachine *s, const uint8_t *buf, int buf_len,
                     initrd_size);
 
     /* jump_addr = 0x80000000 */
-    
     q = (uint32_t *)(ram_ptr + 0x1000);
 
     q[0] = 0x297 + 0x80000000 - 0x1000; /* auipc t0, jump_addr */
@@ -1122,7 +1121,7 @@ static void copy_bios(RISCVMachine *s, const uint8_t *buf, int buf_len,
     q[2] = 0x58593 + ((fdt_addr - 4) << 20); /* addi a1, a1, dtb */
     q[3] = 0xf1402573; /* csrr a0, mhartid */
     q[4] = 0x00028067; /* jalr zero, t0, jump_addr */   
-    
+
 }
 
 static void riscv_flush_tlb_write_range(void *opaque, uint8_t *ram_addr,

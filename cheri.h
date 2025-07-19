@@ -134,7 +134,7 @@ typedef struct {
 } SpecialCapabilityRegister;
 
 
-void insert_entry(capability_t cap);
+void insert_entry(uint64_t addr, capability_t cap);
 capability_t *get_entry(uint64_t base_addr);
 capability_t get_register(int n);
 capability_t clear_tag(capability_t cap);

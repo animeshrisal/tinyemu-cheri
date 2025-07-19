@@ -23,9 +23,9 @@ static inline uint64_t cap_top(const capability_t *cap) {
   return cap->base + cap->length;
 }
 
-void insert_entry(capability_t cap) {
+void insert_entry(uint64_t addr, capability_t cap) {
   if (counter < MAX_COUNTER) {
-    table.entry[counter].key = cap.base;
+    table.entry[counter].key = addr;
     table.entry[counter].value = &cap;
     counter++;
   }
@@ -34,11 +34,13 @@ void insert_entry(capability_t cap) {
 capability_t *get_entry(uint64_t base_addr) {
   for (int i = 0; i < counter; i++) {
     if (table.entry[counter].key == base_addr) {
-      return table.entry[counter].value;
+
+      return &table.entry[counter].value;
     }
   }
 
-  return NULL;
+  capability_t new_cap;
+  return &new_cap;
 }
 
 capability_t get_register(int n) {
