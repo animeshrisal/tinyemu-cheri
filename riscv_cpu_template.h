@@ -428,9 +428,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cs2 = rs2;
         cd = rd;
 
-
-
-
         uint64_t offset = (insn >> 12) & 0x7;
         switch(opcode) {
             case 0x5b:
@@ -1334,7 +1331,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         case 0x67: /* jalr */
             imm = (int32_t)insn >> 20;
             capability_t cap = s->cap[cs1];
-
+            
             //TODO: Replace original instruction to use capability
             if(insn == 0x00028067) {
                 s->pc = (intx_t)(s->reg[rs1] + imm) & ~1;
