@@ -27,7 +27,7 @@ void insert_entry(uint64_t addr, capability_t cap) {
   if (counter < MAX_COUNTER) {
     table.entry[counter].key = addr;
     table.entry[counter].value = &cap;
-    counter++;
+    counter = (counter + 1) % MAX_COUNTER ;
   }
 }
 
@@ -155,7 +155,6 @@ uint64_t set_cap_offsetBits(capability_t cap, uint64_t reg) {
 SetCapAddrResult set_cap_addr(capability_t cap, uint64_t vl) {
   capability_t new_cap = cap;
   new_cap.offset = (uint64_t)(vl);
-  
   BOOL within_bounds = (vl >= cap.base) && (vl < cap.base + cap.length);
   // BOOL representable = within_bounds && capBoundsEqual(cap, new_cap);
 

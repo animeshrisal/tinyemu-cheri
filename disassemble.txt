@@ -1,0 +1,210 @@
+
+kernel.elf:	file format elf64-littleriscv
+
+Disassembly of section .text:
+
+0000000080000000 <_entry>:
+80000000: 5b 03 10 02  	cspecialr	ct1, ddc
+80000004: b7 03 00 80  	lui	t2, 524288
+80000008: f5 33        	addiw	t2, t2, -3
+8000000a: 5b 03 73 1a  	candperm	ct1, ct1, t2
+8000000e: 5b 00 13 02  	cspecialw	ddc, ct1
+80000012: 17 05 00 00  	auipcc	ca0, 0
+80000016: 5b 15 65 02  	cincoffset	ca0, ca0, 38
+8000001a: 5b 0e 00 02  	cspecialr	ct3, pcc
+8000001e: 5b 05 ae 20  	csetaddr	ca0, ct3, a0
+80000022: 37 0f 00 80  	lui	t5, 524288
+80000026: 1b 0f 7f fd  	addiw	t5, t5, -41
+8000002a: 5b 05 e5 1b  	candperm	ca0, ca0, t5
+8000002e: 05 4e        	li	t3, 1
+80000030: 5b 05 c5 1d  	csetflags	ca0, ca0, t3
+80000034: 5b 00 c5 fe  	jr.cap	ca0
+
+0000000080000038 <next>:
+80000038: 17 25 00 00  	auipcc	ca0, 2
+8000003c: 5b 15 85 10  	cincoffset	ca0, ca0, 264
+80000040: 85 63        	lui	t2, 1
+80000042: 73 2e 40 f1  	csrr	t3, mhartid
+80000046: 05 0e        	addi	t3, t3, 1
+80000048: b3 8e c3 03  	mul	t4, t2, t3
+8000004c: 5b 01 a3 20  	csetaddr	csp, ct1, a0
+80000050: 5b 01 d1 11  	csetbounds	csp, csp, t4
+80000054: 5b 01 d1 23  	cincoffset	csp, csp, t4
+80000058: 17 05 00 00  	auipcc	ca0, 0
+8000005c: 5b 15 a5 04  	cincoffset	ca0, ca0, 74
+80000060: 02 95        	cjalr	ca0
+
+0000000080000062 <spin>:
+80000062: 01 a0        	j	0x80000062 <spin>
+
+0000000080000064 <putachar>:
+80000064: 03 46 55 00  	clbu	a2, 5(ca0)
+80000068: 13 76 06 02  	andi	a2, a2, 32
+8000006c: 65 de        	beqz	a2, 0x80000064 <putachar>
+8000006e: 23 00 b5 00  	csb	a1, 0(ca0)
+80000072: 82 80        	cret
+
+0000000080000074 <printstring>:
+80000074: 83 45 05 00  	clbu	a1, 0(ca0)
+80000078: 85 c5        	beqz	a1, 0x800000a0 <printstring+0x2c>
+8000007a: 17 16 00 00  	auipcc	ca2, 1
+8000007e: 0f 26 66 08  	clc	ca2, 134(ca2)
+80000082: 81 46        	li	a3, 0
+80000084: 18 22        	clc	ca4, 0(ca2)
+80000086: 83 47 57 00  	clbu	a5, 5(ca4)
+8000008a: 93 f7 07 02  	andi	a5, a5, 32
+8000008e: e5 df        	beqz	a5, 0x80000086 <printstring+0x12>
+80000090: 23 00 b7 00  	csb	a1, 0(ca4)
+80000094: 85 06        	addi	a3, a3, 1
+80000096: db 05 d5 22  	cincoffset	ca1, ca0, a3
+8000009a: 83 c5 05 00  	clbu	a1, 0(ca1)
+8000009e: fd f1        	bnez	a1, 0x80000084 <printstring+0x10>
+800000a0: 82 80        	cret
+
+00000000800000a2 <start>:
+800000a2: 7d 71        	cincoffset	csp, csp, -16
+800000a4: 06 a0        	csc	cra, 0(csp)
+800000a6: 17 16 00 00  	auipcc	ca2, 1
+800000aa: 5b 16 a6 01  	cincoffset	ca2, ca2, 26
+800000ae: 32 85        	mv	a0, a2
+800000b0: 17 16 00 00  	auipcc	ca2, 1
+800000b4: 5b 16 86 03  	cincoffset	ca2, ca2, 56
+800000b8: b2 85        	mv	a1, a2
+800000ba: 89 8d        	sub	a1, a1, a0
+800000bc: 5b 07 10 02  	cspecialr	ca4, ddc
+800000c0: 63 52 b0 08  	blez	a1, 0x80000144 <start+0xa2>
+800000c4: 97 06 00 00  	auipcc	ca3, 0
+800000c8: 5b 85 a6 20  	csetaddr	ca0, ca3, a0
+800000cc: 5b 05 b5 10  	csetbounds	ca0, ca0, a1
+800000d0: db 05 b5 22  	cincoffset	ca1, ca0, a1
+800000d4: 13 06 d0 f7  	li	a2, -131
+800000d8: 5b 06 c7 1a  	candperm	ca2, ca4, a2
+800000dc: 93 07 70 f5  	li	a5, -169
+800000e0: db 82 f6 1a  	candperm	ct0, ca3, a5
+800000e4: 93 07 50 f1  	li	a5, -235
+800000e8: 5b 08 f7 1a  	candperm	ca6, ca4, a5
+800000ec: 19 a8        	j	0x80000102 <start+0x60>
+800000ee: 5b 07 a0 fe  	cmove	ca4, cnull
+800000f2: 14 61        	cld	a3, 0(ca0)
+800000f4: db 06 d6 20  	csetaddr	ca3, ca2, a3
+800000f8: 5b 15 85 02  	cincoffset	ca0, ca0, 40
+800000fc: 98 a2        	csc	ca4, 0(ca3)
+800000fe: 63 73 b5 04  	bgeu	a0, a1, 0x80000144 <start+0xa2>
+80000102: 1c 65        	cld	a5, 8(ca0)
+80000104: ed d7        	beqz	a5, 0x800000ee <start+0x4c>
+80000106: 18 71        	cld	a4, 32(ca0)
+80000108: db 88 a2 fe  	cmove	ca7, ct0
+8000010c: 63 4a 07 00  	bltz	a4, 0x80000120 <start+0x7e>
+80000110: 93 16 17 00  	slli	a3, a4, 1
+80000114: db 08 a6 fe  	cmove	ca7, ca2
+80000118: 63 d4 06 00  	bgez	a3, 0x80000120 <start+0x7e>
+8000011c: db 08 a8 fe  	cmove	ca7, ca6
+80000120: db 87 f8 20  	csetaddr	ca5, ca7, a5
+80000124: 63 4a 07 00  	bltz	a4, 0x80000138 <start+0x96>
+80000128: 18 6d        	cld	a4, 24(ca0)
+8000012a: 19 c3        	beqz	a4, 0x80000130 <start+0x8e>
+8000012c: db 87 e7 10  	csetbounds	ca5, ca5, a4
+80000130: 14 69        	cld	a3, 16(ca0)
+80000132: 5b 87 d7 22  	cincoffset	ca4, ca5, a3
+80000136: 75 bf        	j	0x800000f2 <start+0x50>
+80000138: 14 69        	cld	a3, 16(ca0)
+8000013a: db 86 d7 22  	cincoffset	ca3, ca5, a3
+8000013e: 5b 87 16 ff  	csealentry	ca4, ca3
+80000142: 45 bf        	j	0x800000f2 <start+0x50>
+80000144: 97 00 00 00  	auipcc	cra, 0
+80000148: e7 80 a0 00  	cjalr	10(cra)
+8000014c: 01 a0        	j	0x8000014c <start+0xaa>
+
+000000008000014e <main>:
+8000014e: 17 15 00 00  	auipcc	ca0, 1
+80000152: 0f 25 25 fb  	clc	ca0, -78(ca0)
+80000156: b7 05 00 10  	lui	a1, 65536
+8000015a: db 05 b0 26  	cfromptr	ca1, ddc, a1
+8000015e: db a5 65 00  	csetbounds	ca1, ca1, 6
+80000162: 0c a1        	csc	ca1, 0(ca0)
+80000164: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000168: 13 76 06 02  	andi	a2, a2, 32
+8000016c: 65 de        	beqz	a2, 0x80000164 <main+0x16>
+8000016e: 13 06 80 04  	li	a2, 72
+80000172: 23 80 c5 00  	csb	a2, 0(ca1)
+80000176: 0c 21        	clc	ca1, 0(ca0)
+80000178: 03 c6 55 00  	clbu	a2, 5(ca1)
+8000017c: 13 76 06 02  	andi	a2, a2, 32
+80000180: 65 de        	beqz	a2, 0x80000178 <main+0x2a>
+80000182: 13 06 10 06  	li	a2, 97
+80000186: 23 80 c5 00  	csb	a2, 0(ca1)
+8000018a: 0c 21        	clc	ca1, 0(ca0)
+8000018c: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000190: 13 76 06 02  	andi	a2, a2, 32
+80000194: 65 de        	beqz	a2, 0x8000018c <main+0x3e>
+80000196: 13 06 c0 06  	li	a2, 108
+8000019a: 23 80 c5 00  	csb	a2, 0(ca1)
+8000019e: 0c 21        	clc	ca1, 0(ca0)
+800001a0: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001a4: 13 76 06 02  	andi	a2, a2, 32
+800001a8: 65 de        	beqz	a2, 0x800001a0 <main+0x52>
+800001aa: 13 06 c0 06  	li	a2, 108
+800001ae: 23 80 c5 00  	csb	a2, 0(ca1)
+800001b2: 0c 21        	clc	ca1, 0(ca0)
+800001b4: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001b8: 13 76 06 02  	andi	a2, a2, 32
+800001bc: 65 de        	beqz	a2, 0x800001b4 <main+0x66>
+800001be: 13 06 f0 06  	li	a2, 111
+800001c2: 23 80 c5 00  	csb	a2, 0(ca1)
+800001c6: 0c 21        	clc	ca1, 0(ca0)
+800001c8: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001cc: 13 76 06 02  	andi	a2, a2, 32
+800001d0: 65 de        	beqz	a2, 0x800001c8 <main+0x7a>
+800001d2: 13 06 00 02  	li	a2, 32
+800001d6: 23 80 c5 00  	csb	a2, 0(ca1)
+800001da: 0c 21        	clc	ca1, 0(ca0)
+800001dc: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001e0: 13 76 06 02  	andi	a2, a2, 32
+800001e4: 65 de        	beqz	a2, 0x800001dc <main+0x8e>
+800001e6: 13 06 20 05  	li	a2, 82
+800001ea: 23 80 c5 00  	csb	a2, 0(ca1)
+800001ee: 0c 21        	clc	ca1, 0(ca0)
+800001f0: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001f4: 13 76 06 02  	andi	a2, a2, 32
+800001f8: 65 de        	beqz	a2, 0x800001f0 <main+0xa2>
+800001fa: 13 06 90 04  	li	a2, 73
+800001fe: 23 80 c5 00  	csb	a2, 0(ca1)
+80000202: 0c 21        	clc	ca1, 0(ca0)
+80000204: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000208: 13 76 06 02  	andi	a2, a2, 32
+8000020c: 65 de        	beqz	a2, 0x80000204 <main+0xb6>
+8000020e: 13 06 30 05  	li	a2, 83
+80000212: 23 80 c5 00  	csb	a2, 0(ca1)
+80000216: 0c 21        	clc	ca1, 0(ca0)
+80000218: 03 c6 55 00  	clbu	a2, 5(ca1)
+8000021c: 13 76 06 02  	andi	a2, a2, 32
+80000220: 65 de        	beqz	a2, 0x80000218 <main+0xca>
+80000222: 13 06 30 04  	li	a2, 67
+80000226: 23 80 c5 00  	csb	a2, 0(ca1)
+8000022a: 0c 21        	clc	ca1, 0(ca0)
+8000022c: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000230: 13 76 06 02  	andi	a2, a2, 32
+80000234: 65 de        	beqz	a2, 0x8000022c <main+0xde>
+80000236: 13 06 d0 02  	li	a2, 45
+8000023a: 23 80 c5 00  	csb	a2, 0(ca1)
+8000023e: 0c 21        	clc	ca1, 0(ca0)
+80000240: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000244: 13 76 06 02  	andi	a2, a2, 32
+80000248: 65 de        	beqz	a2, 0x80000240 <main+0xf2>
+8000024a: 13 06 60 05  	li	a2, 86
+8000024e: 23 80 c5 00  	csb	a2, 0(ca1)
+80000252: 0c 21        	clc	ca1, 0(ca0)
+80000254: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000258: 13 76 06 02  	andi	a2, a2, 32
+8000025c: 65 de        	beqz	a2, 0x80000254 <main+0x106>
+8000025e: 13 06 10 02  	li	a2, 33
+80000262: 23 80 c5 00  	csb	a2, 0(ca1)
+80000266: 08 21        	clc	ca0, 0(ca0)
+80000268: 83 45 55 00  	clbu	a1, 5(ca0)
+8000026c: 93 f5 05 02  	andi	a1, a1, 32
+80000270: e5 dd        	beqz	a1, 0x80000268 <main+0x11a>
+80000272: a9 45        	li	a1, 10
+80000274: 23 00 b5 00  	csb	a1, 0(ca0)
+80000278: 01 45        	li	a0, 0
+8000027a: 82 80        	cret
+		...

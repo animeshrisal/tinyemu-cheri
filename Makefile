@@ -151,12 +151,12 @@ endif
 
 ifdef CONFIG_COMPRESSED_INITRAMFS
 EMU_OBJS+=compress.o
-override CFLAGS+=-DCONFIG_COMPRESSED_INITRAMFS
+override CFLAGS+=-DCONFIG_COMPRESSED_INITRAMFS 
 override LDFLAGS+=-lz
 endif
 
 temu$(EXE): $(EMU_OBJS)
-	$(CC) -o $@ $^ $(EMU_LIBS) $(LDFLAGS)
+	$(CC) -o $@ $^ $(EMU_LIBS) $(LDFLAGS) -g
 
 libtemu.a: $(EMU_OBJS)
 	ar ru $@ $^
@@ -178,7 +178,7 @@ splitimg: splitimg.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 install: $(PROGS)
-	$(STRIP) $(PROGS)
+	$(PROGS)
 	$(INSTALL) -m755 $(PROGS) "$(DESTDIR)$(bindir)"
 
 %.o: %.c

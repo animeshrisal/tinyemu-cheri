@@ -1,0 +1,8 @@
+{
+    "C_Cpp.errorSquiggles": "disabled",
+    "files.associations": {
+        "limits": "c",
+        "riscv_cpu_template.h": "c",
+        "initializer_list": "c"
+    }
+}

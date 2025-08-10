@@ -1191,7 +1191,7 @@ static void handle_mret(RISCVCPUState *s)
     /* set MPP to U */
     s->mstatus &= ~MSTATUS_MPP;
     set_priv(s, mpp);
-    s->pc = s->mepc;
+    s->pc = s->cap_state.mepcc.offset;
 }
 
 static inline uint32_t get_pending_irq_mask(RISCVCPUState *s)
@@ -1270,7 +1270,7 @@ static void glue(riscv_cpu_interp, MAX_XLEN)(RISCVCPUState *s, int n_cycles)
     s = &riscv_cpu_global_state;
 #endif
     uint64_t timeout;
-
+    printf("Hello\n");
     timeout = s->insn_counter + n_cycles;
     while (!s->power_down_flag &&
            (int)(timeout - s->insn_counter) > 0) {
@@ -1281,7 +1281,12 @@ static void glue(riscv_cpu_interp, MAX_XLEN)(RISCVCPUState *s, int n_cycles)
             break;
 #if MAX_XLEN >= 64
         case 64:
+                    printf("enter\n");
+
             riscv_cpu_interp_x64(s, n_cycles);
+                        printf("exit\n");
+                        fflush(stdout);
+
             break;
 #endif
 #if MAX_XLEN >= 128
