@@ -1270,7 +1270,6 @@ static void glue(riscv_cpu_interp, MAX_XLEN)(RISCVCPUState *s, int n_cycles)
     s = &riscv_cpu_global_state;
 #endif
     uint64_t timeout;
-    printf("Hello\n");
     timeout = s->insn_counter + n_cycles;
     while (!s->power_down_flag &&
            (int)(timeout - s->insn_counter) > 0) {
@@ -1281,11 +1280,8 @@ static void glue(riscv_cpu_interp, MAX_XLEN)(RISCVCPUState *s, int n_cycles)
             break;
 #if MAX_XLEN >= 64
         case 64:
-                    printf("enter\n");
 
             riscv_cpu_interp_x64(s, n_cycles);
-                        printf("exit\n");
-                        fflush(stdout);
 
             break;
 #endif

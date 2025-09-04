@@ -159,7 +159,6 @@ uint64_t get_base_perm_bits(capability_t cap);
 uint64_t EXTZ(uint64_t flags);
 uint64_t EXTS(uint64_t flags);
 CapBounds get_cap_bounds(capability_t cap);
-SetCapBoundsResult set_cap_bounds(capability_t cap);
 SetCapAddrResult set_cap_addr(capability_t cap, uint64_t vl);
 SetCapOffsetResult set_cap_offset(capability_t cap, uint64_t vl);
 
@@ -180,7 +179,7 @@ capability_t set_cap_flags(capability_t cap, uint64_t rv);
 CapAddrResult inc_cap_offset(capability_t cap, uint64_t reg);
 BOOL in_cap_bounds(capability_t cap, uint64_t vl, uint64_t al);
 uint64_t get_cap_base_bits(capability_t cap);
-SetCapBoundsResult set_cap_bounds(capability_t cap);
+SetCapBoundsResult set_cap_bounds(capability_t cap, uint64_t newBase, uint64_t newTop);
 
 void capSpecialRW();
 SpecialCapabilityRegister get_special_reg_info(uint64_t csr, BOOL val, Privilege priv);

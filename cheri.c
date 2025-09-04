@@ -130,14 +130,17 @@ uint64_t inline to_bits(int value, int width) {
 }
 
 SetCapOffsetResult set_cap_offset(capability_t cap, uint64_t val) {
-
-  SetCapOffsetResult result;
+  cap.offset = val;
+  SetCapOffsetResult result = { 1, cap };
   return result;
 };
 
+SetCapBoundsResult set_cap_bounds(capability_t cap, uint64_t newBase, uint64_t newTop) {
+  cap.base = newBase;
+  cap.length = newTop - newBase;
+  
+  SetCapBoundsResult result = { 1, cap};
 
-SetCapBoundsResult set_cap_bounds(capability_t cap) {
-  SetCapBoundsResult result;
   return result;
 };
 
@@ -149,8 +152,6 @@ capability_t set_cap_flags(capability_t cap, uint64_t rv) {
 uint64_t set_cap_offsetBits(capability_t cap, uint64_t reg) { 
   return 1;
 };
-
-
 
 SetCapAddrResult set_cap_addr(capability_t cap, uint64_t vl) {
   capability_t new_cap = cap;

@@ -136,7 +136,6 @@ static inline BOOL cspecial_rw(int cd, int scr, int cs1, capability_t c1, RISCVC
             case 29: cs->mtdc = c1; break;
             case 30: cs->mscratchc = c1; break;
             case 31: 
-                capability_print(c1, cs1);
                 cs->mepcc = c1;
             break;
             default: assert(FALSE && "unreachable"); return FALSE;
@@ -308,10 +307,9 @@ static inline uintx_t glue(mulhsu, XLEN)(intx_t a, uintx_t b)
 static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                                                    int n_cycles1)
 {
-
     int count = 0;
     uint32_t opcode, insn, rd, rs1, rs2, funct3;
-    uint32_t cs2, cs1, cd;
+    uint32_t cs2, cs1, cd, test;
     int32_t imm, cond, err;
     target_ulong addr, val, val2;
 #ifndef USE_GLOBAL_VARIABLES
@@ -406,12 +404,13 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         rd = (insn >> 7) & 0x1f;
         rs1 = (insn >> 15) & 0x1f;
         rs2 = (insn >> 20) & 0x1f;
-    
+        test = (insn >> 14) & 0x1f;
         cs1 = rs1;
         cs2 = rs2;
         cd = rd;
         
         uint64_t offset = (insn >> 12) & 0x7;
+
         switch(opcode) {
             case 0x5b:
                 uint32_t more_op =(insn >> 25) & 0x7f;
@@ -424,7 +423,20 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     capability_t inCap = clear_tag_if_sealed(c1); 
                     CapAddrResult result = inc_cap_offset(inCap, imm);
                     s->cap[cd] = clear_tag_if(result.cap, !result.success);
+                } else if (offset == 0x2) {
+                    capability_t c1 = s->cap[cs1];
+
+                    uint64_t newBase = c1.base + c1.offset;
+                    uint64_t newTop = (u_int64_t)newBase +(uint64_t)rs2;
+                    uint64_t inBounds = in_cap_bounds(c1, newBase, (uint64_t)rs2);
+
+                    capability_t inCap = clear_tag_if_sealed(c1);
+                    SetCapBoundsResult scbr = set_cap_bounds(inCap, newBase, newTop);
+
+                    s->cap[cd] = scbr.cap;
+                    capability_print(scbr.cap, cd);
                 }
+
 
                 else if(more_op == 0x7f) {
                 switch(cs2) {
@@ -523,12 +535,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 uint64_t scr = (insn >> 20) & 0x1f;
                 uint64_t cs1 = (insn >> 15) & 0x1f;
                 cspecial_rw(cd, scr, cs1, s->cap[cs1], &s->cap_state, &s);
-
-                if(GET_PC() == 0x80000184) {
-                    capability_print(s->cap[cs1], cs1);
-                }
-            } 
-            else if(more_op == 0xb) {
+            } else if(more_op == 0xb) {
                 //CSeal 
 
                 capability_t c1 = s->cap[cs1];
@@ -608,9 +615,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 capability_t inCap = clear_tag_if_sealed(c1);
                 SetCapAddrResult result = set_cap_addr(inCap, r2);
                 s->cap[cd] = clear_tag_if(result.cap, !result.exact);
-                if(GET_PC() == 0x80000180) {
-                    capability_print(s->cap[cd], cd);
-                }
             } else if(more_op == 0x11) {
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
@@ -623,29 +627,29 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             } else if(more_op == 0x8) {
                 //CSetBounds
 
+  
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
-
-                uint64_t newBase = c1.base;
+                
+                uint64_t newBase = c1.base + c1.offset;
                 uint64_t newTop = EXTZ(newBase) + EXTZ(r2);
 
                 BOOL inBounds = in_cap_bounds(c1, newBase, (uint64_t)r2);
                 capability_t inCap = clear_tag_if_sealed(c1);
-
-                SetCapBoundsResult result = set_cap_bounds(inCap);
+                inCap.length = r2;
+                SetCapBoundsResult result = set_cap_bounds(inCap, newBase, newTop);
                 s->cap[cd] = clear_tag_if(result.cap, !inBounds);
+
             } else if(more_op == 0x9 ) {
-                // CSetBoundsExact
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
 
                 uint64_t newBase = c1.base;
                 uint64_t newTop = EXTZ(newBase) + EXTZ(rs2);
-
                 BOOL inBounds = in_cap_bounds(c1, newBase, (uint64_t)rs2);
                 capability_t inCap = clear_tag_if_sealed(c1);
 
-                SetCapBoundsResult result = set_cap_bounds(inCap);
+                SetCapBoundsResult result = set_cap_bounds(inCap, newBase, newTop);
                 s->cap[cd] = clear_tag_if(result.cap, !(inBounds && result.exact));
             } else if( more_op ==0x12) {
                 capability_t c2 = (cs2 == 0) ? s->ddc : s->cap[cs2];
@@ -1940,7 +1944,6 @@ fprintf(stderr, "*** ECALLEND ***\n");
                     val = 0x8000036c;
                     s->reg[rd] = val;
                 }
-                printf("\naddr: %x val: %x", addr, val);
                 
                 cap.offset = 0x8000036c;
                 s->cap[rd] = cap;
@@ -2313,12 +2316,6 @@ fprintf(stderr, "*** ECALLEND ***\n");
  done_interp:
  the_end:
     s->insn_counter = GET_INSN_COUNTER();
-
- printf("s->insn_counter %x\n", s->insn_counter);
-     printf("done interp %lx int=%x mstatus=%lx prv=%d mcause=%d sepc=%d\n",
-           (uint64_t)s->insn_counter, s->mip & s->mie, (uint64_t)s->mstatus,
-           s->priv, s->mcause, s->mepc);
-
 }
 
 #undef uintx_t
