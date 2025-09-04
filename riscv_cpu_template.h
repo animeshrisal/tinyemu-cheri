@@ -182,8 +182,26 @@ static void print_all_info(struct RISCVCPUState *riscv) {
         
 }
 
+static inline BOOL check_memory_access_exception(capability_t cap) {
+    if(
+        cap.tag == 0 ||
+        is_cap_sealed(cap) ||
+        cap.base + cap.offset < cap.base ||
+        cap.base + cap.offset > cap.base + cap.length
+    ) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
 static inline uint64_t target_write_cap(RISCVCPUState *s, target_ulong addr, capability_t cap) {  
-    insert_entry(addr, cap);    
+    int is_ok = check_memory_access_exception(cap); 
+    if(is_ok) {
+    insert_entry(addr, cap);
+    } else {
+        printf("You do not have permission to execute this");
+    }    
 }
 
 static inline uint64_t target_read_cap(RISCVCPUState *s, capability_t *pval, target_ulong addr) {
@@ -191,6 +209,8 @@ static inline uint64_t target_read_cap(RISCVCPUState *s, capability_t *pval, tar
     *pval = cap;
     return 0;
 }
+
+
 
 
 #elif XLEN == 64 && defined(HAVE_INT128)
