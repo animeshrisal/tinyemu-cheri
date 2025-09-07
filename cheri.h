@@ -55,7 +55,7 @@ typedef struct {
   uint64_t length;
   uint64_t offset;
   uint64_t permissions;
-  uint64_t uperissions;
+  uint64_t upermissions;
   uint64_t flags;
   uint64_t otype;
   uint8_t tag;

@@ -198,7 +198,7 @@ static inline BOOL check_memory_access_exception(capability_t cap) {
 static inline uint64_t target_write_cap(RISCVCPUState *s, target_ulong addr, capability_t cap) {  
     int is_ok = check_memory_access_exception(cap); 
     if(is_ok) {
-    insert_entry(addr, cap);
+        insert_entry(addr, cap);
     } else {
         printf("You do not have permission to execute this");
     }    
@@ -209,8 +209,6 @@ static inline uint64_t target_read_cap(RISCVCPUState *s, capability_t *pval, tar
     *pval = cap;
     return 0;
 }
-
-
 
 
 #elif XLEN == 64 && defined(HAVE_INT128)

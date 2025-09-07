@@ -4,14 +4,29 @@
 #include <string.h>
 #include <stdio.h>
 
+/* Set a max counter capabilities of 1000
+  Since we are not directly saving the capabilities in the memory. 
+  We are using a workaround where we store the capabilities in a table.
+  When we perform memory operations, we are reading from the table instead of the RAM>
+  This is not the best method but it works for now
+*/
 #define MAX_COUNTER 1000
 int counter = 0;
 
+
+/*
+ We store the two values. The address of the memory location is the key. 
+ The value is the pointer to the where the capability is actually stored.
+ */
 typedef struct {
   uint64_t key;
   capability_t *value;
 } cap_table_entry_t;
 
+
+/* 
+  The table definition
+*/
 typedef struct {
   cap_table_entry_t entry[MAX_COUNTER];
 } cap_table_t;
@@ -46,16 +61,6 @@ capability_t *get_entry(uint64_t base_addr) {
 capability_t get_register(int n) {
 
 }
-
-// BOOL set_cap_bounds (capability_t cap, cap_address_bits_t a, cap_len_bits_t l,
-// capability_t *cap) {
-
-// }
-
-// BOOL set_cap_addr (capability_t cap, cap_address_bits_t a, capability_t
-// *capability) {
-
-// }
 
 capability_t inline clear_tag(capability_t cap) {
   cap.tag = 0;
@@ -183,7 +188,7 @@ capability_t set_cap_perms(capability_t cap, uint64_t cap_perm_bits) {
 }
 
 capability_t set_cap_uperms(capability_t cap, uint64_t cap_perm_bits) {
-  cap.uperissions = cap_perm_bits;
+  cap.upermissions = cap_perm_bits;
   return cap;
 }
 
@@ -280,7 +285,7 @@ void capability_print(cap_register_t cap, int index) {
     printf("Length     : 0x%llx\n", cap.length);
     printf("Offset     : 0x%llx\n", cap.offset);
     printf("Permissions: 0x%llx\n", cap.permissions);
-    printf("Uperissions: 0x%llx\n", cap.uperissions); 
+    printf("upermissions: 0x%llx\n", cap.upermissions); 
     printf("Flags      : 0x%llx\n", cap.flags);
     printf("Otype      : 0x%llx\n", cap.otype);
     printf("Tag        : 0x%x\n", cap.tag);
