@@ -25,7 +25,7 @@ typedef struct {
 
 
 /* 
-  The table definition
+  The table
 */
 typedef struct {
   cap_table_entry_t entry[MAX_COUNTER];
@@ -111,11 +111,9 @@ uint64_t inline EXTZ(uint64_t flags) { return (uint64_t)flags; }
 
 uint64_t inline EXTS(uint64_t flags) { return (uint64_t)flags | ~0ULL; }
 
-uint64_t inline bool_to_bits(BOOL sealed) { return 1; }
-
 uint64_t inline get_cap_high(capability_t cap) { return 1; }
 
-uint64_t inline get_cap_top(capability_t cap) { return 1; }
+uint64_t inline get_cap_top(capability_t cap) { return cap_top(&cap); }
 
 uint64_t inline get_base_perm_bits(capability_t cap) { return (uint64_t)cap.base; }
 
@@ -143,7 +141,6 @@ SetCapOffsetResult set_cap_offset(capability_t cap, uint64_t val) {
 SetCapBoundsResult set_cap_bounds(capability_t cap, uint64_t newBase, uint64_t newTop) {
   cap.base = newBase;
   cap.length = newTop - newBase;
-  
   SetCapBoundsResult result = { 1, cap};
 
   return result;
@@ -210,29 +207,41 @@ SpecialCapabilityRegister get_special_reg_info(uint64_t csr, BOOL val, Privilege
     return (SpecialCapabilityRegister){FALSE, TRUE, MACHINE, TRUE};
   }
 
-  BOOL inline haveNExt() {
-    return TRUE;
-  }
+BOOL inline haveNExt() {
+  return TRUE;
+}
 
-  BOOL inline haveSupMode() {
-    return MACHINE;
-  }
+BOOL inline haveSupMode() {
+  return MACHINE;
+}
 
-  capability_t legalize_epcc(capability_t cap) {
-    return cap;
-  }
+capability_t legalize_epcc(capability_t cap) {
+  return cap;
+}
 
-  capability_t legalize_tcc(capability_t cap1, capability_t cap2) {
-    return cap1;
-  }
+capability_t legalize_tcc(capability_t cap1, capability_t cap2) {
+  return cap1;
+}
 
-  uint8_t handle_cheri_reg_exception(uint64_t cap_ex, uint64_t capreg_idx) {
+uint8_t handle_cheri_reg_exception(uint64_t cap_ex, uint64_t capreg_idx) {
 
-  }
+}
 
-  uint8_t handle_mem_exception(uint64_t xlenbits, ExceptionType type) {
-    
-  }
+uint8_t handle_mem_exception(uint64_t xlenbits, ExceptionType type) {
+  
+}
+
+BOOL capability_equals(capability_t c1, capability_t c2) {
+    return (c1.base        == c2.base)        &&
+           (c1.length      == c2.length)      &&
+           (c1.offset      == c2.offset)      &&
+           (c1.permissions == c2.permissions) &&
+           (c1.upermissions== c2.upermissions)&&
+           (c1.flags       == c2.flags)       &&
+           (c1.otype       == c2.otype)       &&
+           (c1.tag         == c2.tag)         &&
+           (c1._cap_cursor == c2._cap_cursor);
+}
 
 const char* cheri_reg_name(int index) {
     switch (index) {

@@ -189,9 +189,9 @@ static inline BOOL check_memory_access_exception(capability_t cap) {
         cap.base + cap.offset < cap.base ||
         cap.base + cap.offset > cap.base + cap.length
     ) {
-        return TRUE;
-    } else {
         return FALSE;
+    } else {
+        return TRUE;
     }
 }
 
@@ -199,8 +199,10 @@ static inline uint64_t target_write_cap(RISCVCPUState *s, target_ulong addr, cap
     int is_ok = check_memory_access_exception(cap); 
     if(is_ok) {
         insert_entry(addr, cap);
+        return 0;
     } else {
-        printf("You do not have permission to execute this");
+        printf("You do not have permission to execute this\n");
+        return 1;
     }    
 }
 
@@ -426,6 +428,8 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cs1 = rs1;
         cs2 = rs2;
         cd = rd;
+
+        printf("%x\n", insn);
         
         uint64_t offset = (insn >> 12) & 0x7;
 
@@ -644,14 +648,13 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
             } else if(more_op == 0x8) {
                 //CSetBounds
-
   
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
                 
                 uint64_t newBase = c1.base + c1.offset;
                 uint64_t newTop = EXTZ(newBase) + EXTZ(r2);
-
+                printf("new top: %x\n");
                 BOOL inBounds = in_cap_bounds(c1, newBase, (uint64_t)r2);
                 capability_t inCap = clear_tag_if_sealed(c1);
                 inCap.length = r2;
@@ -686,8 +689,10 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     s->cap[cd] = null;
                 } else {
                     capability_t inCap = clear_tag_if_sealed(cs1_val);
+                    printf("%x\n", rs2_val);
                     SetCapOffsetResult result = set_cap_offset(inCap, rs2_val);
                     s->cap[cd] = clear_tag_if(result.cap, 1);
+                    capability_print(result.cap, cd);
                 }
             } else if(more_op ==0x20) {
                 capability_t cs1_val = (cs1 == 0) ? s->ddc : s->cap[cs1];
@@ -717,7 +722,8 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             } else if(more_op ==0x21) {
                 capability_t cs1_val = s->cap[cs1];
                 capability_t cs2_val = s->cap[cs2];
-                // s->reg[rd] = EXTZ(bool_to_bits(capability_equals(cs1_val, cs2_val)));
+                
+                s->reg[rd] = EXTZ(capability_equals(cs1_val, cs2_val));
 
             } else if(more_op ==0x16) {
                 // CSetHigh
@@ -2323,6 +2329,7 @@ fprintf(stderr, "*** ECALLEND ***\n");
     s->pending_tval = insn;
  mmu_exception:
  exception:
+    printf("WRYYasdYY\n");
     s->pc = GET_PC();
     if (s->pending_exception >= 0) {
         /* Note: the idea is that one exception counts for one cycle. */
