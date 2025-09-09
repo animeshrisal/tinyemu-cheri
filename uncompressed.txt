@@ -9,254 +9,264 @@ Disassembly of section .text:
 80000008: 9b 83 d3 ff  	addiw	t2, t2, -3
 8000000c: 5b 03 73 1a  	candperm	ct1, ct1, t2
 80000010: 5b 00 13 02  	cspecialw	ddc, ct1
+
+0000000080000014 <.Ltmp0>:
 80000014: 17 05 00 00  	auipcc	ca0, 0
 80000018: 5b 15 85 02  	cincoffset	ca0, ca0, 40
 8000001c: 5b 0e 00 02  	cspecialr	ct3, pcc
 80000020: 5b 05 ae 20  	csetaddr	ca0, ct3, a0
 80000024: 37 0f 00 80  	lui	t5, 524288
-80000028: 1b 0f ff ff  	addiw	t5, t5, -1
+80000028: 1b 0f 7f fd  	addiw	t5, t5, -41
 8000002c: 5b 05 e5 1b  	candperm	ca0, ca0, t5
 80000030: 13 0e 10 00  	li	t3, 1
 80000034: 5b 05 c5 1d  	csetflags	ca0, ca0, t3
 80000038: 5b 00 c5 fe  	jr.cap	ca0
 
 000000008000003c <next>:
-8000003c: 17 15 00 00  	auipcc	ca0, 1
-80000040: 5b 15 45 2a  	cincoffset	ca0, ca0, 676
-80000044: b7 02 02 00  	lui	t0, 32
-80000048: 5b 05 55 10  	csetbounds	ca0, ca0, t0
-8000004c: 73 23 40 f1  	csrr	t1, mhartid
-80000050: 13 03 13 00  	addi	t1, t1, 1
-80000054: b7 13 00 00  	lui	t2, 1
-80000058: 33 0e 73 02  	mul	t3, t1, t2
-8000005c: 5b 05 c5 23  	cincoffset	ca0, ca0, t3
-80000060: 5b 05 75 10  	csetbounds	ca0, ca0, t2
-80000064: 5b 05 75 22  	cincoffset	ca0, ca0, t2
-80000068: 5b 01 a5 fe  	cmove	csp, ca0
+8000003c: 17 25 00 00  	auipcc	ca0, 2
+80000040: 5b 15 45 10  	cincoffset	ca0, ca0, 260
+80000044: 37 88 3e 00  	lui	a6, 1000
+80000048: 13 08 88 3e  	addi	a6, a6, 1000
+8000004c: db 85 51 26  	cfromptr	ca1, cgp, t0
+80000050: db a5 85 00  	csetbounds	ca1, ca1, 8
+80000054: 03 c5 75 00  	clbu	a0, 7(ca1)
+80000058: 83 c5 85 00  	clbu	a1, 8(ca1)
+8000005c: b7 13 00 00  	lui	t2, 1
+80000060: 73 2e 40 f1  	csrr	t3, mhartid
+80000064: 13 0e 1e 00  	addi	t3, t3, 1
+80000068: b3 8e c3 03  	mul	t4, t2, t3
+8000006c: 5b 01 a3 20  	csetaddr	csp, ct1, a0
+80000070: 5b 01 d1 11  	csetbounds	csp, csp, t4
+80000074: 5b 01 d1 23  	cincoffset	csp, csp, t4
 
-000000008000006c <.Ltmp1>:
-8000006c: 17 05 00 00  	auipcc	ca0, 0
-80000070: 5b 15 05 02  	cincoffset	ca0, ca0, 32
-80000074: e7 00 05 00  	cjalr	ca0
+0000000080000078 <.Ltmp1>:
+80000078: 17 05 00 00  	auipcc	ca0, 0
+8000007c: 5b 15 05 06  	cincoffset	ca0, ca0, 96
+80000080: e7 00 05 00  	cjalr	ca0
 
-0000000080000078 <spin>:
-80000078: 6f 00 00 00  	j	0x80000078 <spin>
+0000000080000084 <spin>:
+80000084: 6f 00 00 00  	j	0x80000084 <spin>
 
-000000008000007c <foo>:
-8000007c: 17 15 00 00  	auipcc	ca0, 1
-80000080: 0f 25 45 1c  	clc	ca0, 452(ca0)
-80000084: 17 03 00 00  	auipcc	ct1, 0
-80000088: 67 00 c3 1f  	cjr	508(ct1)
+0000000080000088 <putachar>:
+80000088: 03 46 55 00  	clbu	a2, 5(ca0)
+8000008c: 13 76 06 02  	andi	a2, a2, 32
+80000090: e3 0c 06 fe  	beqz	a2, 0x80000088 <putachar>
+80000094: 23 00 b5 00  	csb	a1, 0(ca0)
+80000098: 67 80 00 00  	cret
 
-000000008000008c <start>:
-8000008c: 5b 08 10 02  	cspecialr	ca6, ddc
-80000090: 17 16 00 00  	auipcc	ca2, 1
-80000094: 5b 16 06 0d  	cincoffset	ca2, ca2, 208
-80000098: 93 05 06 00  	mv	a1, a2
-8000009c: 17 16 00 00  	auipcc	ca2, 1
-800000a0: 5b 16 c6 18  	cincoffset	ca2, ca2, 396
-800000a4: 13 05 06 00  	mv	a0, a2
-800000a8: 33 05 b5 40  	sub	a0, a0, a1
-800000ac: 97 08 00 00  	auipcc	ca7, 0
-800000b0: 63 5c a0 08  	blez	a0, 0x80000148 <start+0xbc>
-800000b4: db 85 b8 20  	csetaddr	ca1, ca7, a1
-800000b8: 5b 86 a5 10  	csetbounds	ca2, ca1, a0
-800000bc: db 06 a6 22  	cincoffset	ca3, ca2, a0
-800000c0: 13 05 d0 f7  	li	a0, -131
-800000c4: 5b 07 a8 1a  	candperm	ca4, ca6, a0
-800000c8: 13 05 70 f5  	li	a0, -169
-800000cc: 5b 85 a8 1a  	candperm	ca0, ca7, a0
-800000d0: 93 05 50 f1  	li	a1, -235
-800000d4: 5b 03 b8 1a  	candperm	ct1, ca6, a1
-800000d8: 6f 00 c0 01  	j	0x800000f4 <start+0x68>
-800000dc: db 05 a0 fe  	cmove	ca1, cnull
-800000e0: 83 37 06 00  	cld	a5, 0(ca2)
-800000e4: db 07 f7 20  	csetaddr	ca5, ca4, a5
-800000e8: 5b 16 86 02  	cincoffset	ca2, ca2, 40
-800000ec: 23 c0 b7 00  	csc	ca1, 0(ca5)
-800000f0: 63 7c d6 04  	bgeu	a2, a3, 0x80000148 <start+0xbc>
-800000f4: 83 35 86 00  	cld	a1, 8(ca2)
-800000f8: e3 82 05 fe  	beqz	a1, 0x800000dc <start+0x50>
-800000fc: 83 32 06 02  	cld	t0, 32(ca2)
-80000100: db 07 a5 fe  	cmove	ca5, ca0
-80000104: 63 ca 02 00  	bltz	t0, 0x80000118 <start+0x8c>
-80000108: 93 93 12 00  	slli	t2, t0, 1
-8000010c: db 07 a7 fe  	cmove	ca5, ca4
-80000110: 63 d4 03 00  	bgez	t2, 0x80000118 <start+0x8c>
-80000114: db 07 a3 fe  	cmove	ca5, ct1
-80000118: db 85 b7 20  	csetaddr	ca1, ca5, a1
-8000011c: 63 ce 02 00  	bltz	t0, 0x80000138 <start+0xac>
-80000120: 83 37 86 01  	cld	a5, 24(ca2)
-80000124: 63 84 07 00  	beqz	a5, 0x8000012c <start+0xa0>
-80000128: db 85 f5 10  	csetbounds	ca1, ca1, a5
-8000012c: 83 37 06 01  	cld	a5, 16(ca2)
-80000130: db 85 f5 22  	cincoffset	ca1, ca1, a5
-80000134: 6f f0 df fa  	j	0x800000e0 <start+0x54>
-80000138: 83 37 06 01  	cld	a5, 16(ca2)
-8000013c: db 85 f5 22  	cincoffset	ca1, ca1, a5
-80000140: db 85 15 ff  	csealentry	ca1, ca1
-80000144: 6f f0 df f9  	j	0x800000e0 <start+0x54>
-80000148: 73 25 00 30  	csrr	a0, mstatus
-8000014c: b7 e5 ff ff  	lui	a1, 1048574
-80000150: 9b 85 f5 7f  	addiw	a1, a1, 2047
-80000154: 33 75 b5 00  	and	a0, a0, a1
-80000158: b7 15 00 00  	lui	a1, 1
-8000015c: 9b 85 05 80  	addiw	a1, a1, -2048
+000000008000009c <printstring>:
+8000009c: 83 45 05 00  	clbu	a1, 0(ca0)
+800000a0: 63 8a 05 02  	beqz	a1, 0x800000d4 <.LBB1_5>
 
-0000000080000160 <.LBB1_14>:
-80000160: 17 16 00 00  	auipcc	ca2, 1
-80000164: 0f 26 06 0f  	clc	ca2, 240(ca2)
-80000168: 33 65 b5 00  	or	a0, a0, a1
+00000000800000a4 <.LBB1_6>:
+800000a4: 17 16 00 00  	auipcc	ca2, 1
+800000a8: 0f 26 c6 05  	clc	ca2, 92(ca2)
+800000ac: 93 06 00 00  	li	a3, 0
 
-000000008000016c <.LBB1_15>:
-8000016c: 97 15 00 00  	auipcc	ca1, 1
-80000170: 8f a5 45 0f  	clc	ca1, 244(ca1)
-80000174: 73 10 05 30  	csrw	mstatus, a0
-80000178: 5b 85 c8 20  	csetaddr	ca0, ca7, a2
-8000017c: 5b 00 c5 03  	cspecialw	mtcc, ca0
-80000180: 5b 85 b8 20  	csetaddr	ca0, ca7, a1
-80000184: 5b 00 f5 03  	cspecialw	mepcc, ca0
-80000188: 73 10 00 18  	csrw	satp, zero
-8000018c: 37 05 01 00  	lui	a0, 16
-80000190: 1b 05 f5 ff  	addiw	a0, a0, -1
-80000194: 73 10 25 30  	csrw	medeleg, a0
-80000198: 73 10 35 30  	csrw	mideleg, a0
-8000019c: 73 25 40 10  	csrr	a0, sie
-800001a0: 13 65 25 22  	ori	a0, a0, 546
-800001a4: 73 10 45 10  	csrw	sie, a0
-800001a8: 13 05 f0 ff  	li	a0, -1
-800001ac: 13 55 a5 00  	srli	a0, a0, 10
-800001b0: 73 10 05 3b  	csrw	pmpaddr0, a0
-800001b4: 13 05 f0 00  	li	a0, 15
-800001b8: 73 10 05 3a  	csrw	pmpcfg0, a0
+00000000800000b0 <.LBB1_2>:
+800000b0: 0f 27 06 00  	clc	ca4, 0(ca2)
 
-00000000800001bc <.LBB1_16>:
-800001bc: 17 15 00 00  	auipcc	ca0, 1
-800001c0: 0f 25 45 0b  	clc	ca0, 180(ca0)
-800001c4: b7 05 00 10  	lui	a1, 65536
-800001c8: db 05 b8 26  	cfromptr	ca1, ca6, a1
-800001cc: db a5 65 00  	csetbounds	ca1, ca1, 6
-800001d0: 23 40 b5 00  	csc	ca1, 0(ca0)
-800001d4: 13 05 10 00  	li	a0, 1
-800001d8: a3 80 a5 00  	csb	a0, 1(ca1)
-800001dc: 73 25 40 f1  	csrr	a0, mhartid
-800001e0: 1b 05 05 00  	sext.w	a0, a0
-800001e4: 13 02 05 00  	mv	tp, a0
-800001e8: 73 00 20 30  	mret	
-800001ec: 67 80 00 00  	cret
+00000000800000b4 <.LBB1_3>:
+800000b4: 83 47 57 00  	clbu	a5, 5(ca4)
+800000b8: 93 f7 07 02  	andi	a5, a5, 32
+800000bc: e3 8c 07 fe  	beqz	a5, 0x800000b4 <.LBB1_3>
+800000c0: 23 00 b7 00  	csb	a1, 0(ca4)
+800000c4: 93 86 16 00  	addi	a3, a3, 1
+800000c8: db 05 d5 22  	cincoffset	ca1, ca0, a3
+800000cc: 83 c5 05 00  	clbu	a1, 0(ca1)
+800000d0: e3 90 05 fe  	bnez	a1, 0x800000b0 <.LBB1_2>
 
-00000000800001f0 <init_uart0>:
-800001f0: 17 15 00 00  	auipcc	ca0, 1
-800001f4: 0f 25 05 08  	clc	ca0, 128(ca0)
-800001f8: b7 05 00 10  	lui	a1, 65536
-800001fc: db 05 b0 26  	cfromptr	ca1, ddc, a1
-80000200: db a5 65 00  	csetbounds	ca1, ca1, 6
-80000204: 23 40 b5 00  	csc	ca1, 0(ca0)
-80000208: 67 80 00 00  	cret
+00000000800000d4 <.LBB1_5>:
+800000d4: 67 80 00 00  	cret
 
-000000008000020c <putachar>:
-8000020c: 97 15 00 00  	auipcc	ca1, 1
-80000210: 8f a5 45 06  	clc	ca1, 100(ca1)
-80000214: 8f a5 05 00  	clc	ca1, 0(ca1)
-80000218: 03 c6 55 00  	clbu	a2, 5(ca1)
-8000021c: 13 76 06 02  	andi	a2, a2, 32
-80000220: e3 0c 06 fe  	beqz	a2, 0x80000218 <putachar+0xc>
-80000224: 23 80 a5 00  	csb	a0, 0(ca1)
-80000228: 67 80 00 00  	cret
+00000000800000d8 <start>:
+800000d8: 5b 11 01 ff  	cincoffset	csp, csp, -16
+800000dc: 23 40 11 00  	csc	cra, 0(csp)
+800000e0: 17 16 00 00  	auipcc	ca2, 1
+800000e4: 5b 16 06 fe  	cincoffset	ca2, ca2, -32
+800000e8: 13 05 06 00  	mv	a0, a2
+800000ec: 17 16 00 00  	auipcc	ca2, 1
+800000f0: 5b 16 c6 ff  	cincoffset	ca2, ca2, -4
+800000f4: 93 05 06 00  	mv	a1, a2
+800000f8: b3 85 a5 40  	sub	a1, a1, a0
+800000fc: db 06 10 02  	cspecialr	ca3, ddc
+80000100: 63 5e b0 08  	blez	a1, 0x8000019c <.LBB2_13>
+80000104: 17 07 00 00  	auipcc	ca4, 0
+80000108: 5b 05 a7 20  	csetaddr	ca0, ca4, a0
+8000010c: 5b 05 b5 10  	csetbounds	ca0, ca0, a1
+80000110: db 05 b5 22  	cincoffset	ca1, ca0, a1
+80000114: 13 06 d0 f7  	li	a2, -131
+80000118: 5b 86 c6 1a  	candperm	ca2, ca3, a2
+8000011c: 93 07 70 f5  	li	a5, -169
+80000120: 5b 07 f7 1a  	candperm	ca4, ca4, a5
+80000124: 93 07 50 f1  	li	a5, -235
+80000128: db 88 f6 1a  	candperm	ca7, ca3, a5
+8000012c: 6f 00 c0 01  	j	0x80000148 <.LBB2_4>
 
-000000008000022c <printstring>:
-8000022c: 83 45 05 00  	clbu	a1, 0(ca0)
-80000230: 63 86 05 02  	beqz	a1, 0x8000025c <.LBB1_6+0x28>
+0000000080000130 <.LBB2_2>:
+80000130: db 07 a0 fe  	cmove	ca5, cnull
 
-0000000080000234 <.LBB1_6>:
-80000234: 17 16 00 00  	auipcc	ca2, 1
-80000238: 0f 26 c6 03  	clc	ca2, 60(ca2)
-8000023c: 8f 26 06 00  	clc	ca3, 0(ca2)
-80000240: 03 c7 56 00  	clbu	a4, 5(ca3)
-80000244: 13 77 07 02  	andi	a4, a4, 32
-80000248: e3 0c 07 fe  	beqz	a4, 0x80000240 <.LBB1_6+0xc>
-8000024c: 23 80 b6 00  	csb	a1, 0(ca3)
-80000250: 83 45 15 00  	clbu	a1, 1(ca0)
-80000254: 5b 15 15 00  	cincoffset	ca0, ca0, 1
-80000258: e3 92 05 fe  	bnez	a1, 0x8000023c <.LBB1_6+0x8>
-8000025c: 67 80 00 00  	cret
+0000000080000134 <.LBB2_3>:
+80000134: 83 36 05 00  	cld	a3, 0(ca0)
+80000138: db 06 d6 20  	csetaddr	ca3, ca2, a3
+8000013c: 5b 15 85 02  	cincoffset	ca0, ca0, 40
+80000140: 23 c0 f6 00  	csc	ca5, 0(ca3)
+80000144: 63 7c b5 04  	bgeu	a0, a1, 0x8000019c <.LBB2_13>
 
-0000000080000260 <getachar>:
-80000260: 17 15 00 00  	auipcc	ca0, 1
-80000264: 0f 25 05 01  	clc	ca0, 16(ca0)
-80000268: 0f 25 05 00  	clc	ca0, 0(ca0)
-8000026c: 83 45 55 00  	clbu	a1, 5(ca0)
-80000270: 93 f5 15 00  	andi	a1, a1, 1
-80000274: e3 8c 05 fe  	beqz	a1, 0x8000026c <getachar+0xc>
-80000278: 03 45 05 00  	clbu	a0, 0(ca0)
-8000027c: 67 80 00 00  	cret
+0000000080000148 <.LBB2_4>:
+80000148: 83 37 85 00  	cld	a5, 8(ca0)
+8000014c: e3 82 07 fe  	beqz	a5, 0x80000130 <.LBB2_2>
+80000150: 03 38 05 02  	cld	a6, 32(ca0)
+80000154: db 06 a7 fe  	cmove	ca3, ca4
+80000158: 63 4a 08 00  	bltz	a6, 0x8000016c <.LBB2_8>
+8000015c: 93 12 18 00  	slli	t0, a6, 1
+80000160: db 06 a6 fe  	cmove	ca3, ca2
+80000164: 63 d4 02 00  	bgez	t0, 0x8000016c <.LBB2_8>
+80000168: db 86 a8 fe  	cmove	ca3, ca7
 
-0000000080000280 <panic>:
-80000280: 97 15 00 00  	auipcc	ca1, 1
-80000284: 8f a5 05 ff  	clc	ca1, -16(ca1)
-80000288: 0f a6 05 00  	clc	ca2, 0(ca1)
-8000028c: 83 46 56 00  	clbu	a3, 5(ca2)
-80000290: 93 f6 06 02  	andi	a3, a3, 32
-80000294: e3 8c 06 fe  	beqz	a3, 0x8000028c <panic+0xc>
-80000298: 93 06 00 05  	li	a3, 80
-8000029c: 23 00 d6 00  	csb	a3, 0(ca2)
-800002a0: 0f a6 05 00  	clc	ca2, 0(ca1)
-800002a4: 83 46 56 00  	clbu	a3, 5(ca2)
-800002a8: 93 f6 06 02  	andi	a3, a3, 32
-800002ac: e3 8c 06 fe  	beqz	a3, 0x800002a4 <panic+0x24>
-800002b0: 93 06 10 04  	li	a3, 65
-800002b4: 23 00 d6 00  	csb	a3, 0(ca2)
-800002b8: 0f a6 05 00  	clc	ca2, 0(ca1)
-800002bc: 83 46 56 00  	clbu	a3, 5(ca2)
-800002c0: 93 f6 06 02  	andi	a3, a3, 32
-800002c4: e3 8c 06 fe  	beqz	a3, 0x800002bc <panic+0x3c>
-800002c8: 93 06 e0 04  	li	a3, 78
-800002cc: 23 00 d6 00  	csb	a3, 0(ca2)
-800002d0: 0f a6 05 00  	clc	ca2, 0(ca1)
-800002d4: 83 46 56 00  	clbu	a3, 5(ca2)
-800002d8: 93 f6 06 02  	andi	a3, a3, 32
-800002dc: e3 8c 06 fe  	beqz	a3, 0x800002d4 <panic+0x54>
-800002e0: 93 06 90 04  	li	a3, 73
-800002e4: 23 00 d6 00  	csb	a3, 0(ca2)
-800002e8: 0f a6 05 00  	clc	ca2, 0(ca1)
-800002ec: 83 46 56 00  	clbu	a3, 5(ca2)
-800002f0: 93 f6 06 02  	andi	a3, a3, 32
-800002f4: e3 8c 06 fe  	beqz	a3, 0x800002ec <panic+0x6c>
-800002f8: 93 06 30 04  	li	a3, 67
-800002fc: 23 00 d6 00  	csb	a3, 0(ca2)
-80000300: 0f a6 05 00  	clc	ca2, 0(ca1)
-80000304: 83 46 56 00  	clbu	a3, 5(ca2)
-80000308: 93 f6 06 02  	andi	a3, a3, 32
-8000030c: e3 8c 06 fe  	beqz	a3, 0x80000304 <panic+0x84>
-80000310: 93 06 a0 03  	li	a3, 58
-80000314: 23 00 d6 00  	csb	a3, 0(ca2)
-80000318: 0f a6 05 00  	clc	ca2, 0(ca1)
-8000031c: 83 46 56 00  	clbu	a3, 5(ca2)
-80000320: 93 f6 06 02  	andi	a3, a3, 32
-80000324: e3 8c 06 fe  	beqz	a3, 0x8000031c <panic+0x9c>
-80000328: 93 06 00 02  	li	a3, 32
-8000032c: 23 00 d6 00  	csb	a3, 0(ca2)
-80000330: 03 46 05 00  	clbu	a2, 0(ca0)
-80000334: 63 02 06 02  	beqz	a2, 0x80000358 <.LBB3_21>
-80000338: 8f a6 05 00  	clc	ca3, 0(ca1)
-8000033c: 03 c7 56 00  	clbu	a4, 5(ca3)
-80000340: 13 77 07 02  	andi	a4, a4, 32
-80000344: e3 0c 07 fe  	beqz	a4, 0x8000033c <panic+0xbc>
-80000348: 23 80 c6 00  	csb	a2, 0(ca3)
-8000034c: 03 46 15 00  	clbu	a2, 1(ca0)
-80000350: 5b 15 15 00  	cincoffset	ca0, ca0, 1
-80000354: e3 12 06 fe  	bnez	a2, 0x80000338 <panic+0xb8>
+000000008000016c <.LBB2_8>:
+8000016c: db 87 f6 20  	csetaddr	ca5, ca3, a5
+80000170: 63 4e 08 00  	bltz	a6, 0x8000018c <.LBB2_12>
+80000174: 83 36 85 01  	cld	a3, 24(ca0)
+80000178: 63 84 06 00  	beqz	a3, 0x80000180 <.LBB2_11>
+8000017c: db 87 d7 10  	csetbounds	ca5, ca5, a3
 
-0000000080000358 <.LBB3_21>:
-80000358: 17 15 00 00  	auipcc	ca0, 1
-8000035c: 0f 25 85 f2  	clc	ca0, -216(ca0)
-80000360: 93 05 10 00  	li	a1, 1
-80000364: 23 20 b5 00  	csw	a1, 0(ca0)
-80000368: 6f 00 00 00  	j	0x80000368 <.LBB3_21+0x10>
+0000000080000180 <.LBB2_11>:
+80000180: 83 36 05 01  	cld	a3, 16(ca0)
+80000184: db 87 d7 22  	cincoffset	ca5, ca5, a3
+80000188: 6f f0 df fa  	j	0x80000134 <.LBB2_3>
 
-000000008000036c <main>:
-8000036c: 93 08 10 00  	li	a7, 1
-80000370: 73 00 00 00  	ecall	
-80000374: 13 05 00 00  	li	a0, 0
-80000378: 67 80 00 00  	cret
+000000008000018c <.LBB2_12>:
+8000018c: 83 36 05 01  	cld	a3, 16(ca0)
+80000190: db 86 d7 22  	cincoffset	ca3, ca5, a3
+80000194: db 87 16 ff  	csealentry	ca5, ca3
+80000198: 6f f0 df f9  	j	0x80000134 <.LBB2_3>
+
+000000008000019c <.LBB2_13>:
+8000019c: 97 00 00 00  	auipcc	cra, 0
+800001a0: e7 80 c0 00  	cjalr	12(cra)
+
+00000000800001a4 <.LBB2_14>:
+800001a4: 6f 00 00 00  	j	0x800001a4 <.LBB2_14>
+
+00000000800001a8 <main>:
+800001a8: 17 15 00 00  	auipcc	ca0, 1
+800001ac: 0f 25 85 f5  	clc	ca0, -168(ca0)
+800001b0: b7 05 00 10  	lui	a1, 65536
+800001b4: db 05 b0 26  	cfromptr	ca1, ddc, a1
+800001b8: db a5 65 00  	csetbounds	ca1, ca1, 6
+800001bc: 23 40 b5 00  	csc	ca1, 0(ca0)
+
+00000000800001c0 <.LBB3_1>:
+800001c0: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001c4: 13 76 06 02  	andi	a2, a2, 32
+800001c8: e3 0c 06 fe  	beqz	a2, 0x800001c0 <.LBB3_1>
+800001cc: 13 06 80 04  	li	a2, 72
+800001d0: 23 80 c5 00  	csb	a2, 0(ca1)
+800001d4: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+00000000800001d8 <.LBB3_3>:
+800001d8: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001dc: 13 76 06 02  	andi	a2, a2, 32
+800001e0: e3 0c 06 fe  	beqz	a2, 0x800001d8 <.LBB3_3>
+800001e4: 13 06 10 06  	li	a2, 97
+800001e8: 23 80 c5 00  	csb	a2, 0(ca1)
+800001ec: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+00000000800001f0 <.LBB3_5>:
+800001f0: 03 c6 55 00  	clbu	a2, 5(ca1)
+800001f4: 13 76 06 02  	andi	a2, a2, 32
+800001f8: e3 0c 06 fe  	beqz	a2, 0x800001f0 <.LBB3_5>
+800001fc: 13 06 c0 06  	li	a2, 108
+80000200: 23 80 c5 00  	csb	a2, 0(ca1)
+80000204: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+0000000080000208 <.LBB3_7>:
+80000208: 03 c6 55 00  	clbu	a2, 5(ca1)
+8000020c: 13 76 06 02  	andi	a2, a2, 32
+80000210: e3 0c 06 fe  	beqz	a2, 0x80000208 <.LBB3_7>
+80000214: 13 06 c0 06  	li	a2, 108
+80000218: 23 80 c5 00  	csb	a2, 0(ca1)
+8000021c: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+0000000080000220 <.LBB3_9>:
+80000220: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000224: 13 76 06 02  	andi	a2, a2, 32
+80000228: e3 0c 06 fe  	beqz	a2, 0x80000220 <.LBB3_9>
+8000022c: 13 06 f0 06  	li	a2, 111
+80000230: 23 80 c5 00  	csb	a2, 0(ca1)
+80000234: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+0000000080000238 <.LBB3_11>:
+80000238: 03 c6 55 00  	clbu	a2, 5(ca1)
+8000023c: 13 76 06 02  	andi	a2, a2, 32
+80000240: e3 0c 06 fe  	beqz	a2, 0x80000238 <.LBB3_11>
+80000244: 13 06 00 02  	li	a2, 32
+80000248: 23 80 c5 00  	csb	a2, 0(ca1)
+8000024c: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+0000000080000250 <.LBB3_13>:
+80000250: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000254: 13 76 06 02  	andi	a2, a2, 32
+80000258: e3 0c 06 fe  	beqz	a2, 0x80000250 <.LBB3_13>
+8000025c: 13 06 20 05  	li	a2, 82
+80000260: 23 80 c5 00  	csb	a2, 0(ca1)
+80000264: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+0000000080000268 <.LBB3_15>:
+80000268: 03 c6 55 00  	clbu	a2, 5(ca1)
+8000026c: 13 76 06 02  	andi	a2, a2, 32
+80000270: e3 0c 06 fe  	beqz	a2, 0x80000268 <.LBB3_15>
+80000274: 13 06 90 04  	li	a2, 73
+80000278: 23 80 c5 00  	csb	a2, 0(ca1)
+8000027c: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+0000000080000280 <.LBB3_17>:
+80000280: 03 c6 55 00  	clbu	a2, 5(ca1)
+80000284: 13 76 06 02  	andi	a2, a2, 32
+80000288: e3 0c 06 fe  	beqz	a2, 0x80000280 <.LBB3_17>
+8000028c: 13 06 30 05  	li	a2, 83
+80000290: 23 80 c5 00  	csb	a2, 0(ca1)
+80000294: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+0000000080000298 <.LBB3_19>:
+80000298: 03 c6 55 00  	clbu	a2, 5(ca1)
+8000029c: 13 76 06 02  	andi	a2, a2, 32
+800002a0: e3 0c 06 fe  	beqz	a2, 0x80000298 <.LBB3_19>
+800002a4: 13 06 30 04  	li	a2, 67
+800002a8: 23 80 c5 00  	csb	a2, 0(ca1)
+800002ac: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+00000000800002b0 <.LBB3_21>:
+800002b0: 03 c6 55 00  	clbu	a2, 5(ca1)
+800002b4: 13 76 06 02  	andi	a2, a2, 32
+800002b8: e3 0c 06 fe  	beqz	a2, 0x800002b0 <.LBB3_21>
+800002bc: 13 06 d0 02  	li	a2, 45
+800002c0: 23 80 c5 00  	csb	a2, 0(ca1)
+800002c4: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+00000000800002c8 <.LBB3_23>:
+800002c8: 03 c6 55 00  	clbu	a2, 5(ca1)
+800002cc: 13 76 06 02  	andi	a2, a2, 32
+800002d0: e3 0c 06 fe  	beqz	a2, 0x800002c8 <.LBB3_23>
+800002d4: 13 06 60 05  	li	a2, 86
+800002d8: 23 80 c5 00  	csb	a2, 0(ca1)
+800002dc: 8f 25 05 00  	clc	ca1, 0(ca0)
+
+00000000800002e0 <.LBB3_25>:
+800002e0: 03 c6 55 00  	clbu	a2, 5(ca1)
+800002e4: 13 76 06 02  	andi	a2, a2, 32
+800002e8: e3 0c 06 fe  	beqz	a2, 0x800002e0 <.LBB3_25>
+800002ec: 13 06 10 02  	li	a2, 33
+800002f0: 23 80 c5 00  	csb	a2, 0(ca1)
+800002f4: 0f 25 05 00  	clc	ca0, 0(ca0)
+
+00000000800002f8 <.LBB3_27>:
+800002f8: 83 45 55 00  	clbu	a1, 5(ca0)
+800002fc: 93 f5 05 02  	andi	a1, a1, 32
+80000300: e3 8c 05 fe  	beqz	a1, 0x800002f8 <.LBB3_27>
+80000304: 93 05 a0 00  	li	a1, 10
+80000308: 23 00 b5 00  	csb	a1, 0(ca0)
+8000030c: 13 05 00 00  	li	a0, 0
+80000310: 67 80 00 00  	cret
 		...
