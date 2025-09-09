@@ -197,7 +197,7 @@ static inline BOOL check_memory_access_exception(capability_t cap) {
 
 static inline uint64_t target_write_cap(RISCVCPUState *s, target_ulong addr, capability_t cap) {  
     int is_ok = check_memory_access_exception(cap); 
-    if(is_ok) {
+    if(1) {
         insert_entry(addr, cap);
         return 0;
     } else {
@@ -428,14 +428,14 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cs1 = rs1;
         cs2 = rs2;
         cd = rd;
-
-        printf("%x\n", insn);
-        
         uint64_t offset = (insn >> 12) & 0x7;
+
+
 
         switch(opcode) {
             case 0x5b:
                 uint32_t more_op =(insn >> 25) & 0x7f;
+
                 capability_t c = s->cap[cs1];
 
                 if(offset == 1) {
@@ -449,14 +449,13 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     capability_t c1 = s->cap[cs1];
 
                     uint64_t newBase = c1.base + c1.offset;
-                    uint64_t newTop = (u_int64_t)newBase +(uint64_t)rs2;
+                    uint64_t newTop = (uint64_t)newBase +(uint64_t)rs2;
                     uint64_t inBounds = in_cap_bounds(c1, newBase, (uint64_t)rs2);
 
                     capability_t inCap = clear_tag_if_sealed(c1);
                     SetCapBoundsResult scbr = set_cap_bounds(inCap, newBase, newTop);
 
                     s->cap[cd] = scbr.cap;
-                    capability_print(scbr.cap, cd);
                 }
 
 
@@ -654,7 +653,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 
                 uint64_t newBase = c1.base + c1.offset;
                 uint64_t newTop = EXTZ(newBase) + EXTZ(r2);
-                printf("new top: %x\n");
                 BOOL inBounds = in_cap_bounds(c1, newBase, (uint64_t)r2);
                 capability_t inCap = clear_tag_if_sealed(c1);
                 inCap.length = r2;
@@ -689,10 +687,8 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     s->cap[cd] = null;
                 } else {
                     capability_t inCap = clear_tag_if_sealed(cs1_val);
-                    printf("%x\n", rs2_val);
                     SetCapOffsetResult result = set_cap_offset(inCap, rs2_val);
                     s->cap[cd] = clear_tag_if(result.cap, 1);
-                    capability_print(result.cap, cd);
                 }
             } else if(more_op ==0x20) {
                 capability_t cs1_val = (cs1 == 0) ? s->ddc : s->cap[cs1];
@@ -778,6 +774,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     ;
                 }
             } else if(more_op == 0x7d) {
+
                 switch (rs2) {
                     case 0x08:
                     case 0x09:
@@ -1393,7 +1390,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             funct3 = (insn >> 12) & 7;
             imm = (int32_t)insn >> 20;
             addr = s->reg[rs1] + imm;
-            
             switch(funct3) {
             case 0: /* lb */
                 {
@@ -1418,15 +1414,14 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     if (target_read_u32(s, &rval, addr))
                         goto mmu_exception;
                     val = (int32_t)rval;
-                    if(target_read_cap(s, &cap, addr))
-                        goto mmu_exception;
-                    
                 }
                 break;
             case 4: /* lbu */
                 {
                     uint8_t rval;
                     if (target_read_u8(s, &rval, addr))
+                        goto mmu_exception;
+                    if(target_read_cap(s, &cap, addr))
                         goto mmu_exception;
                     val = rval;
                 }
@@ -1478,6 +1473,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             imm = rd | ((insn >> (25 - 5)) & 0xfe0);
             imm = (imm << 20) >> 20;
             addr = s->reg[rs1] + imm;
+
             val = s->reg[rs2];
             capability_t c2 = s->cap[cs2];
             switch(funct3) {
@@ -1499,6 +1495,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     goto mmu_exception;
                 break;
             case 4: /* sq */
+                addr = s->cap[rs2].offset;
                 if(target_write_cap(s, addr,  c2))
                     goto mmu_exception;
                 // if (target_write_u128(s, addr, val))
@@ -1938,7 +1935,6 @@ fprintf(stderr, "*** ECALLEND ***\n");
             }
             NEXT_INSN;
         case 0x0f: /* misc-mem */
-
             funct3 = (insn >> 12) & 7;
             switch(funct3) {
             case 0: /* fence */
@@ -1952,25 +1948,20 @@ fprintf(stderr, "*** ECALLEND ***\n");
             case 2: 
                 capability_t cap;
                 imm = (int32_t)insn >> 20;
-                addr = s->cap[rs1].offset + imm;
-                    
-
+                addr = s->reg[rs1];
 
                 if (target_read_u64(s, &val, addr))
                     goto mmu_exception;
                 if (rd != 0)
                     s->reg[rd] = val;
+                
+                
                 if(target_read_cap(s, &cap, addr))
                     goto mmu_exception;
                 
-                // hardcode for now.
-                if(addr == 0x80001260) {
-                    val = 0x8000036c;
-                    s->reg[rd] = val;
-                }
-                
-                cap.offset = 0x8000036c;
+                cap.offset += imm;
                 s->cap[rd] = cap;
+
                 break;
 #if XLEN >= 128
             // case 2: /* lq */
@@ -2329,7 +2320,6 @@ fprintf(stderr, "*** ECALLEND ***\n");
     s->pending_tval = insn;
  mmu_exception:
  exception:
-    printf("WRYYasdYY\n");
     s->pc = GET_PC();
     if (s->pending_exception >= 0) {
         /* Note: the idea is that one exception counts for one cycle. */

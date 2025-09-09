@@ -25,7 +25,7 @@ typedef struct {
 
 
 /* 
-  The table
+  The table that holds all the capabilities
 */
 typedef struct {
   cap_table_entry_t entry[MAX_COUNTER];
@@ -39,11 +39,13 @@ static inline uint64_t cap_top(const capability_t *cap) {
 }
 
 void insert_entry(uint64_t addr, capability_t cap) {
+  printf("Adding: %x\n", addr);
   if (counter < MAX_COUNTER) {
     table.entry[counter].key = addr;
     table.entry[counter].value = &cap;
     counter = (counter + 1) % MAX_COUNTER ;
   }
+  printf("Added: %x\n", addr);
 }
 
 capability_t *get_entry(uint64_t base_addr) {
