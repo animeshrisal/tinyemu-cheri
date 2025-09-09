@@ -49,9 +49,10 @@ void insert_entry(uint64_t addr, capability_t cap) {
 }
 
 capability_t *get_entry(uint64_t base_addr) {
+  printf("Getting from base addr: %x\n", base_addr);
   for (int i = 0; i < counter; i++) {
     if (table.entry[counter].key == base_addr) {
-
+      printf("key: %x\n", table.entry[counter].key);
       return &table.entry[counter].value;
     }
   }
@@ -143,6 +144,7 @@ SetCapOffsetResult set_cap_offset(capability_t cap, uint64_t val) {
 SetCapBoundsResult set_cap_bounds(capability_t cap, uint64_t newBase, uint64_t newTop) {
   cap.base = newBase;
   cap.length = newTop - newBase;
+  cap.offset = 0;
   SetCapBoundsResult result = { 1, cap};
 
   return result;

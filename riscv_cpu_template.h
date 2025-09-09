@@ -183,6 +183,10 @@ static void print_all_info(struct RISCVCPUState *riscv) {
 }
 
 static inline BOOL check_memory_access_exception(capability_t cap) {
+    if(cap.base == 0 && cap.offset == 0) {
+        //Null capability
+        return TRUE;
+    }
     if(
         cap.tag == 0 ||
         is_cap_sealed(cap) ||
@@ -197,7 +201,7 @@ static inline BOOL check_memory_access_exception(capability_t cap) {
 
 static inline uint64_t target_write_cap(RISCVCPUState *s, target_ulong addr, capability_t cap) {  
     int is_ok = check_memory_access_exception(cap); 
-    if(1) {
+    if(is_ok) {
         insert_entry(addr, cap);
         return 0;
     } else {
@@ -429,8 +433,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cs2 = rs2;
         cd = rd;
         uint64_t offset = (insn >> 12) & 0x7;
-
-
 
         switch(opcode) {
             case 0x5b:
@@ -1389,7 +1391,10 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         case 0x03: /* load */
             funct3 = (insn >> 12) & 7;
             imm = (int32_t)insn >> 20;
-            addr = s->reg[rs1] + imm;
+            addr = s->cap[rs1].offset +  s->cap[rs1].base + imm;
+            if(insn == 0x5258f) {
+                printf("Load\n");
+            }
             switch(funct3) {
             case 0: /* lb */
                 {
@@ -1421,9 +1426,8 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     uint8_t rval;
                     if (target_read_u8(s, &rval, addr))
                         goto mmu_exception;
-                    if(target_read_cap(s, &cap, addr))
-                        goto mmu_exception;
                     val = rval;
+
                 }
                 break;
             case 5: /* lhu */
@@ -1472,10 +1476,12 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             funct3 = (insn >> 12) & 7;
             imm = rd | ((insn >> (25 - 5)) & 0xfe0);
             imm = (imm << 20) >> 20;
-            addr = s->reg[rs1] + imm;
 
-            val = s->reg[rs2];
+            capability_t c1 = s->cap[cs1];
             capability_t c2 = s->cap[cs2];
+            
+            addr = c1.offset + c1.base + imm;
+
             switch(funct3) {
             case 0: /* sb */
                 if (target_write_u8(s, addr, val))
@@ -1495,7 +1501,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     goto mmu_exception;
                 break;
             case 4: /* sq */
-                addr = s->cap[rs2].offset;
                 if(target_write_cap(s, addr,  c2))
                     goto mmu_exception;
                 // if (target_write_u128(s, addr, val))
@@ -1948,18 +1953,19 @@ fprintf(stderr, "*** ECALLEND ***\n");
             case 2: 
                 capability_t cap;
                 imm = (int32_t)insn >> 20;
-                addr = s->reg[rs1];
-
+                addr = s->cap[rs1].base + s->cap[rs1].offset;
+                
+                printf("addr: %x\n", addr);
                 if (target_read_u64(s, &val, addr))
                     goto mmu_exception;
                 if (rd != 0)
                     s->reg[rd] = val;
-                
+
                 
                 if(target_read_cap(s, &cap, addr))
                     goto mmu_exception;
                 
-                cap.offset += imm;
+                capability_print(cap, rd);
                 s->cap[rd] = cap;
 
                 break;
