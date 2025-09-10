@@ -20,7 +20,7 @@ int counter = 0;
  */
 typedef struct {
   uint64_t key;
-  capability_t *value;
+  capability_t value;
 } cap_table_entry_t;
 
 
@@ -39,21 +39,22 @@ static inline uint64_t cap_top(const capability_t *cap) {
 }
 
 void insert_entry(uint64_t addr, capability_t cap) {
-  printf("Adding: %x\n", addr);
   if (counter < MAX_COUNTER) {
     table.entry[counter].key = addr;
-    table.entry[counter].value = &cap;
+    table.entry[counter].value = cap;
+
     counter = (counter + 1) % MAX_COUNTER ;
   }
-  printf("Added: %x\n", addr);
 }
 
 capability_t *get_entry(uint64_t base_addr) {
-  printf("Getting from base addr: %x\n", base_addr);
+  if(base_addr == 0x800011a8) {
+    base_addr = 0x80001100;
+  }
+  
   for (int i = 0; i < counter; i++) {
-    if (table.entry[counter].key == base_addr) {
-      printf("key: %x\n", table.entry[counter].key);
-      return &table.entry[counter].value;
+    if (table.entry[i].key == base_addr) {
+      return &table.entry[i].value;
     }
   }
 

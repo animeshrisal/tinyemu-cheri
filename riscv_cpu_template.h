@@ -434,6 +434,14 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cd = rd;
         uint64_t offset = (insn >> 12) & 0x7;
 
+        if(GET_PC() == 0x800001bc) {
+            capability_t cap1;
+            cap1.base = 0x80001120;
+            cap1.length = 16;
+
+            target_write_cap(s, 0x80001100, cap1);
+        }
+
         switch(opcode) {
             case 0x5b:
                 uint32_t more_op =(insn >> 25) & 0x7f;
@@ -1392,9 +1400,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             funct3 = (insn >> 12) & 7;
             imm = (int32_t)insn >> 20;
             addr = s->cap[rs1].offset +  s->cap[rs1].base + imm;
-            if(insn == 0x5258f) {
-                printf("Load\n");
-            }
+
             switch(funct3) {
             case 0: /* lb */
                 {
@@ -1955,7 +1961,7 @@ fprintf(stderr, "*** ECALLEND ***\n");
                 imm = (int32_t)insn >> 20;
                 addr = s->cap[rs1].base + s->cap[rs1].offset;
                 
-                printf("addr: %x\n", addr);
+
                 if (target_read_u64(s, &val, addr))
                     goto mmu_exception;
                 if (rd != 0)
@@ -1965,7 +1971,6 @@ fprintf(stderr, "*** ECALLEND ***\n");
                 if(target_read_cap(s, &cap, addr))
                     goto mmu_exception;
                 
-                capability_print(cap, rd);
                 s->cap[rd] = cap;
 
                 break;

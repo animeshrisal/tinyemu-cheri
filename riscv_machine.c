@@ -1029,7 +1029,7 @@ static void copy_bios(RISCVMachine *s, const uint8_t *buf, int buf_len,
             kernel_align = 2 << 20; /* 2 MB page align */
         kernel_base = (buf_len +  kernel_align - 1) & ~(kernel_align - 1);
         printf("kernel_base: %d\n", kernel_base);
-
+        
         if (elf_detect_magic(kernel_buf, kernel_buf_len)) {
             if (elf_load(kernel_buf, kernel_buf_len,
                          ram_ptr + kernel_base,
