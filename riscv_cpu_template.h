@@ -182,6 +182,14 @@ static void print_all_info(struct RISCVCPUState *riscv) {
         
 }
 
+static inline BOOL is_capability_in_boundry_range(capability_t cap, uint64_t offset) {
+    if(cap.length < offset) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
+}
+
 static inline BOOL check_memory_access_exception(capability_t cap) {
     if(cap.base == 0 && cap.offset == 0) {
         //Null capability
@@ -441,7 +449,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
             target_write_cap(s, 0x80001100, cap1);
         }
-
+        
         switch(opcode) {
             case 0x5b:
                 uint32_t more_op =(insn >> 25) & 0x7f;
@@ -1258,7 +1266,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                             cs2 = rs2;
                             cd = rd;
 
-
                             capability_t cap = s->cap[rd];
                                 
                             s->pc = cap.offset;
@@ -1404,10 +1411,15 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
             switch(funct3) {
             case 0: /* lb */
                 {
-                    uint8_t rval;
-                    if (target_read_u8(s, &rval, addr))
-                        goto mmu_exception;
-                    val = (int8_t)rval;
+                    BOOL is_ok = is_capability_in_boundry_range(s->cap[rs1], imm);
+                    if(is_ok) {
+                        uint8_t rval;
+                        if (target_read_u8(s, &rval, addr))
+                            goto mmu_exception;
+                        val = (int8_t)rval;
+                    } else {
+                        printf("Address outside of boundry\n");
+                    }
                 }
                 break;
             case 1: /* lh */
@@ -1967,7 +1979,6 @@ fprintf(stderr, "*** ECALLEND ***\n");
                 if (rd != 0)
                     s->reg[rd] = val;
 
-                
                 if(target_read_cap(s, &cap, addr))
                     goto mmu_exception;
                 
