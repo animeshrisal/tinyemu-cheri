@@ -1282,7 +1282,6 @@ static void glue(riscv_cpu_interp, MAX_XLEN)(RISCVCPUState *s, int n_cycles)
         case 64:
 
             riscv_cpu_interp_x64(s, n_cycles);
-
             break;
 #endif
 #if MAX_XLEN >= 128

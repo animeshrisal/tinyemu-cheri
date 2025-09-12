@@ -449,7 +449,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
             target_write_cap(s, 0x80001100, cap1);
         }
-        
+
         switch(opcode) {
             case 0x5b:
                 uint32_t more_op =(insn >> 25) & 0x7f;
