@@ -149,7 +149,7 @@ BOOL has_reserved_otype(capability_t cap);
 uint64_t get_capability_base_bits(capability_t cap);
 uint64_t get_cap_length(capability_t cap);
 uint64_t get_cap_offset_bits(capability_t cap);
-uint64_t set_cap_offsetBits(capability_t cap, uint64_t reg);
+uint64_t set_cap_offset_bits(capability_t cap, uint64_t reg);
 uint64_t EXTZ(uint64_t flags);
 uint64_t get_cap_flags(capability_t cap);
 uint64_t get_cap_high(capability_t cap);

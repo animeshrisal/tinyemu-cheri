@@ -442,6 +442,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cd = rd;
         uint64_t offset = (insn >> 12) & 0x7;
 
+        // TODO: Read from elf file
         if(GET_PC() == 0x800001bc) {
             capability_t cap1;
             cap1.base = 0x80001120;
@@ -451,12 +452,14 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         }
 
         switch(opcode) {
+            // Read capability 
             case 0x5b:
-                uint32_t more_op =(insn >> 25) & 0x7f;
+                uint32_t high_bits =(insn >> 25) & 0x7f;
 
                 capability_t c = s->cap[cs1];
 
-                if(offset == 1) {
+                // CIncOffsetImm
+                if(offset == 0x1) {
                     uint64_t imm = ((uint32_t)insn >> 20) & 0xFFF; 
                     capability_t c1 = s->cap[cs1];
 
@@ -464,6 +467,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     CapAddrResult result = inc_cap_offset(inCap, imm);
                     s->cap[cd] = clear_tag_if(result.cap, !result.success);
                 } else if (offset == 0x2) {
+                    // CSetBoundsImms
                     capability_t c1 = s->cap[cs1];
 
                     uint64_t newBase = c1.base + c1.offset;
@@ -477,44 +481,57 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 }
 
 
-                else if(more_op == 0x7f) {
+                else if(high_bits == 0x7f) {
                 switch(cs2) {
                     //Capability inspection instruction
+                    // CGetPerm
                     case 0x0:
                         s->reg[rd] = get_cap_perms(c);
                         break;
+                    // CGetType
                     case 0x1:
                         BOOL isOTypeReserved = has_reserved_otype(c);
                         s->reg[rd] = isOTypeReserved ? EXTS(c.flags) : (uint64_t)c.flags;
                         break;
+                    // CGetBase
                     case 0x2:
                         s->reg[rd] = get_base_perm_bits(c);
                         break;
+                    // CGetLen
                     case 0x3:
                         uint64_t len = get_cap_length(c);
-                        //s->reg[rd] = to_bits(len );
                         break;
+                    // CGetTag
                     case 0x4:
                         s->reg[rd] = (uint64_t)c.tag;
                         break;
+                    // CGetSealed
                     case 0x5:   
                         s->reg[rd] = (uint64_t)is_cap_sealed(c);
                         break;
+                    // CGetOffset
                     case 0x6:
                         s->reg[rd] = get_cap_offset_bits(c);
                         break;
+                    // CGetFlags
                     case 0x7:
                         s->reg[rd] = get_cap_flags(c);
                         break;
+                    // CGetHigh
                     case 0x17:
                         s->reg[rd] = get_cap_high(c);
                         break;
+
+                    // CGetTop
                     case 0x18:
                         s->reg[rd] = get_cap_top(c);
                         break;
+                    // CMove
                     case 0xa:
                         s->cap[cd] = s->cap[cs1];
                         break;
+
+                    // CSealEntry
                     case 0x11:
 
                         capability_t inCap = clear_tag_if_sealed(s->cap[cs1]);
@@ -559,22 +576,13 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     case 0x14:
                         // JALR.PCC
                         break;
-                    case 0xe:
-                        break;
-                    case 0x10:
-                        break;
-                    case 0x8:
-                        break;
-                    case 0x9:
-                        break;
-                    case 0x12:
-                        break;
                 }
-            } else if(more_op == 0x1) {
+            } else if(high_bits == 0x1) {
+                // CSpecialRW
                 uint64_t scr = (insn >> 20) & 0x1f;
                 uint64_t cs1 = (insn >> 15) & 0x1f;
                 cspecial_rw(cd, scr, cs1, s->cap[cs1], &s->cap_state, &s);
-            } else if(more_op == 0xb) {
+            } else if(high_bits == 0xb) {
                 //CSeal 
 
                 capability_t c1 = s->cap[cs1];
@@ -595,7 +603,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                 s->cap[cd] = clear_tag_if(newCap, !(permitted));
 
-            } else if (more_op == 0xc) {
+            } else if (high_bits == 0xc) {
                 //CSeal 
 
                 capability_t c1 = s->cap[cs1];
@@ -616,8 +624,8 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                 s->cap[cd] = clear_tag_if(newCap, !(permitted));
 
-            } else if(more_op == 0xd) {
-                //CAndPerm
+            } else if(high_bits == 0xd) {
+                // CAndPerm
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
                 uint64_t perms = get_cap_perms(c1);
@@ -631,14 +639,16 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 capability_t newCap = set_cap_uperms(tempCap, uperms_mask);
                 s->cap[cd] = newCap;
 
-            } else if(more_op == 0xe) {
+            } else if(high_bits == 0xe) {
+                // CSetFlags
+
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
                 capability_t inCap = clear_tag_if_sealed(c1);
                 capability_t newCap = set_cap_flags(inCap, truncate(r2, CAP_FLAGS_WIDTH));
                 s->cap[cd] = newCap;
-            } else if(more_op == 0xf) {
-                //CSetOffset
+            } else if(high_bits == 0xf) {
+                // CSetOffset
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
                 capability_t inCap = clear_tag_if_sealed(c1);
@@ -646,7 +656,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 SetCapOffsetResult newCap = set_cap_offset(inCap, r2);
                 s->cap[cd] = clear_tag_if(newCap.cap, !success);
 
-            } else if(more_op == 0x10) {
+            } else if(high_bits == 0x10) {
                 // CSetAddr 
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
@@ -654,7 +664,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 capability_t inCap = clear_tag_if_sealed(c1);
                 SetCapAddrResult result = set_cap_addr(inCap, r2);
                 s->cap[cd] = clear_tag_if(result.cap, !result.exact);
-            } else if(more_op == 0x11) {
+            } else if(high_bits == 0x11) {
+                // CIncOffset
+
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
 
@@ -663,7 +675,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 CapAddrResult result = inc_cap_offset(inCap, r2);
                 s->cap[cd] = clear_tag_if(result.cap, !result.success);
 
-            } else if(more_op == 0x8) {
+            } else if(high_bits == 0x8) {
                 //CSetBounds
   
                 capability_t c1 = s->cap[cs1];
@@ -677,7 +689,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 SetCapBoundsResult result = set_cap_bounds(inCap, newBase, newTop);
                 s->cap[cd] = clear_tag_if(result.cap, !inBounds);
 
-            } else if(more_op == 0x9 ) {
+            } else if(high_bits == 0x9 ) {
+                // CSetBoundsExact
+
                 capability_t c1 = s->cap[cs1];
                 uint64_t r2 = s->reg[rs2];
 
@@ -688,7 +702,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                 SetCapBoundsResult result = set_cap_bounds(inCap, newBase, newTop);
                 s->cap[cd] = clear_tag_if(result.cap, !(inBounds && result.exact));
-            } else if( more_op ==0x12) {
+            } else if( high_bits ==0x12) {
+                // CToPtr
+
                 capability_t c2 = (cs2 == 0) ? s->ddc : s->cap[cs2];
                 capability_t c1 = s->cap[cs1];
 
@@ -696,7 +712,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     ? 0
                     : (c1.base - get_cap_base_bits(c2));
 
-            } else if(more_op ==0x13) {
+            } else if(high_bits ==0x13) {
+                // CFromPtr
+
                 capability_t cs1_val = (cs1 == 0) ? s->ddc : s->cap[cs1];
                 uint64_t rs2_val = s->reg[rs2];
 
@@ -708,7 +726,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     SetCapOffsetResult result = set_cap_offset(inCap, rs2_val);
                     s->cap[cd] = clear_tag_if(result.cap, 1);
                 }
-            } else if(more_op ==0x20) {
+            } else if(high_bits ==0x20) {
+                // CTestSubset
+
                 capability_t cs1_val = (cs1 == 0) ? s->ddc : s->cap[cs1];
                 capability_t cs2_val = s->cap[cs2];
 
@@ -733,13 +753,15 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                 s->reg[rd] = EXTZ(result);
 
-            } else if(more_op ==0x21) {
+            } else if(high_bits ==0x21) {
+                // CSetEqualExact
+
                 capability_t cs1_val = s->cap[cs1];
                 capability_t cs2_val = s->cap[cs2];
                 
                 s->reg[rd] = EXTZ(capability_equals(cs1_val, cs2_val));
 
-            } else if(more_op ==0x16) {
+            } else if(high_bits ==0x16) {
                 // CSetHigh
 
                 capability_t capVal = s->cap[cs1];
@@ -750,9 +772,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 // capability_t newCap = memBitsToCapability(false, (intVal << XLEN) | capLow);
 
                 // s->cap[cd] = newCap;
-            } else if(more_op == 0x1d) {
+            } else if(high_bits == 0x1d) {
 
-            } else if(more_op == 0x1e) {
+            } else if(high_bits == 0x1e) {
                 // CCopyType 
 
                 capability_t cs1_val = s->cap[cs1];
@@ -765,7 +787,9 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
 
                 SetCapAddrResult result = set_cap_addr(inCap, otype);
                 s->cap[cd] = clear_tag_if(result.cap, reserved || 1);
-            } else if(more_op == 0x1f) {
+            } else if(high_bits == 0x1f) {
+                // CCSeal
+
                 capability_t cs1_val = s->cap[cs1];
                 capability_t cs2_val = s->cap[cs2];
 
@@ -791,22 +815,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                     s->cap[cd] = clear_tag_if(newCap, !permitted);
                     ;
                 }
-            } else if(more_op == 0x7d) {
-
-                switch (rs2) {
-                    case 0x08:
-                    case 0x09:
-                    case 0x0a:
-                    case 0x0b:
-                    case 0x0c:
-                    case 0x0d:
-                    case 0x0e:
-                        capability_t c = s->cap[cs1];
-                        uint64_t address = c.base;
-                        // if (target_read_u32(s, &rval, address))
-                        goto mmu_exception;
-                }
-            } else if(more_op == 0x7c) {
+            } else if(high_bits == 0x7c) {
                 switch(rs1) {
                     
                 }
@@ -815,40 +824,6 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
                 s->pc = GET_PC() + 4;
                 JUMP_INSN;
                 break;
-            case 0x9cc:
-                uint32_t x = (insn >> 25) & 0x7F;
-                switch(x) {
-                    case 0xb:
-                        break;
-                    case 0xc:
-                        break;
-                    case 0xd:
-                        break;
-                    case 0xe:
-                        break;
-                    case 0xf:
-                        break;
-                    case 0x10:
-                        break;
-                    case 0x11:
-                        break;
-                    case 0x8:
-                        break;
-                    case 0x9:
-                        break;
-                    case 0x16:
-                        break;
-                    case 0x1d:
-                        break;
-                    case 0x1e:
-                        break;
-                    case 0x1f:
-                        break;
-                    case 0x7e:
-                        break;
-                }
-            
-
 #ifdef CONFIG_EXT_C
         C_QUADRANT(0)
             funct3 = (insn >> 13) & 7;
@@ -1360,19 +1335,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         case 0x67: /* jalr */
             imm = (int32_t)insn >> 20;
             capability_t cap = s->cap[cs1];
-            
-            //TODO: Replace original instruction to use capability
-            if(insn == 0x00028067) {
-                s->pc = (intx_t)(s->reg[rs1] + imm) & ~1;
-                if (rd != 0)
-                    s->reg[rd] = val;
-            } else {
-                if(cap.offset == 0x80001050) {
-                    s->pc = 0x80000050;
-                } else {
-                    s->pc = (intx_t)(cap.base + cap.offset + imm) & ~1;
-                }
-            }
+            s->pc = (intx_t)(cap.base + cap.offset + imm) & ~1;
 
             val = GET_PC() + 4;
 
@@ -1972,7 +1935,6 @@ fprintf(stderr, "*** ECALLEND ***\n");
                 capability_t cap;
                 imm = (int32_t)insn >> 20;
                 addr = s->cap[rs1].base + s->cap[rs1].offset;
-                
 
                 if (target_read_u64(s, &val, addr))
                     goto mmu_exception;

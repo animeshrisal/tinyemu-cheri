@@ -62,10 +62,6 @@ capability_t *get_entry(uint64_t base_addr) {
   return &new_cap;
 }
 
-capability_t get_register(int n) {
-
-}
-
 capability_t inline clear_tag(capability_t cap) {
   cap.tag = 0;
   return cap;
@@ -86,10 +82,14 @@ capability_t inline clear_tag_if_sealed(capability_t cap) {
 }
 
 capability_t inline seal_cap(capability_t cap) { 
+  // TODO
   return cap;
 }
 
-capability_t inline unseal_cap(capability_t cap) { return cap; }
+capability_t inline unseal_cap(capability_t cap) { 
+// TODO
+  return cap; 
+}
 
 BOOL inline is_cap_sealed(capability_t cap) { 
   return cap.otype == 1 ? 1 : 0;
@@ -115,7 +115,10 @@ uint64_t inline EXTZ(uint64_t flags) { return (uint64_t)flags; }
 
 uint64_t inline EXTS(uint64_t flags) { return (uint64_t)flags | ~0ULL; }
 
-uint64_t inline get_cap_high(capability_t cap) { return 1; }
+uint64_t inline get_cap_high(capability_t cap) { 
+  // TODO
+  return 1; 
+}
 
 uint64_t inline get_cap_top(capability_t cap) { return cap_top(&cap); }
 
@@ -129,6 +132,7 @@ CapBounds inline get_cap_bounds(capability_t cap) {
 }
 
 uint64_t inline get_cap_cursor(capability_t cap) {
+  // TODO
   return 1;
 }
 
@@ -156,7 +160,8 @@ capability_t inline set_cap_flags(capability_t cap, uint64_t rv) {
   return cap;
 }
 
-uint64_t inline set_cap_offsetBits(capability_t cap, uint64_t reg) { 
+uint64_t inline set_cap_offset_bits(capability_t cap, uint64_t reg) { 
+  // TODO
   return 1;
 };
 
@@ -181,6 +186,7 @@ BOOL in_cap_bounds(capability_t cap, uint64_t vl, uint64_t al) {
 }
 
 uint64_t inline get_cap_base_bits(capability_t cap) {
+  //TODO
   return 1;
 }
 
@@ -213,27 +219,31 @@ SpecialCapabilityRegister get_special_reg_info(uint64_t csr, BOOL val, Privilege
   }
 
 BOOL inline haveNExt() {
+  // TODO
   return TRUE;
 }
 
 BOOL inline haveSupMode() {
+  // TODO
   return MACHINE;
 }
 
 capability_t legalize_epcc(capability_t cap) {
+  // TODO
   return cap;
 }
 
 capability_t legalize_tcc(capability_t cap1, capability_t cap2) {
+  // TODO
   return cap1;
 }
 
 uint8_t handle_cheri_reg_exception(uint64_t cap_ex, uint64_t capreg_idx) {
-
+// TODO
 }
 
 uint8_t handle_mem_exception(uint64_t xlenbits, ExceptionType type) {
-  
+// TODO
 }
 
 BOOL capability_equals(capability_t c1, capability_t c2) {
