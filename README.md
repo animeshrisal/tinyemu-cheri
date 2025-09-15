@@ -75,6 +75,7 @@ It is currently a work in progress. This section is to document the changes.
 1. A cheri.c and cheri.h file have been included that performs specific cheri operations.
 2. The riscv_cpu_template.h has been modified to run cheri instructions.
 3. A table has been created to hold the cheri instructions
+4. The cheri code was writtem for 64-bit systems.
 
 ## Credits
 
