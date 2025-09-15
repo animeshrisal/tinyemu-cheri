@@ -48,10 +48,6 @@ void insert_entry(uint64_t addr, capability_t cap) {
 }
 
 capability_t *get_entry(uint64_t base_addr) {
-  if(base_addr == 0x800011a8) {
-    base_addr = 0x80001100;
-  }
-  
   for (int i = 0; i < counter; i++) {
     if (table.entry[i].key == base_addr) {
       return &table.entry[i].value;
@@ -103,7 +99,9 @@ BOOL inline has_reserved_otype(capability_t cap) {
   return (uint64_t)cap.otype;
 }
 
-uint64_t inline get_capability_base_bits(capability_t cap) { return 1; }
+uint64_t inline get_capability_base_bits(capability_t cap) { 
+  // TODO
+  return 1; }
 
 uint64_t inline get_cap_length(capability_t cap) { return (uint64_t)cap.length; }
 
