@@ -1,4 +1,4 @@
-# TinyEMU
+# TinyEMU with cheri extensions
 
 [![Build](https://github.com/fernandotcl/TinyEMU/workflows/Build/badge.svg)][GitHub Actions]
 
@@ -66,6 +66,15 @@ If you're compiling from source, you'll need:
 [sdl]: https://www.libsdl.org
 
 Make sure to disable `CONFIG_INT128` for 32-bit hosts.
+
+## CHERI
+This emulator has been modified to include CHERI capabilities
+
+It is currently a work in progress. This section is to document the changes.
+
+1. A cheri.c and cheri.h file have been included that performs specific cheri operations.
+2. The riscv_cpu_template.h has been modified to run cheri instructions.
+3. A table has been created to hold the cheri instructions
 
 ## Credits
 
