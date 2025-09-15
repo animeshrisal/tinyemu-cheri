@@ -76,6 +76,9 @@ It is currently a work in progress. This section is to document the changes.
 2. The riscv_cpu_template.h has been modified to run cheri instructions.
 3. A table has been created to hold the cheri instructions
 4. The cheri code was writtem for 64-bit systems.
+5. The project includes a `kernel.elf` that was used for testing 
+and a `uncompressed.txt` file that shows the cheri assembly code
+6. There is a test folder that contains the origin c code.
 
 ## Credits
 
