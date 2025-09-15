@@ -136,13 +136,13 @@ uint64_t inline to_bits(int value, int width) {
   return (uint64_t)(value & ((1ULL << width) - 1 ));
 }
 
-SetCapOffsetResult set_cap_offset(capability_t cap, uint64_t val) {
+SetCapOffsetResult inline set_cap_offset(capability_t cap, uint64_t val) {
   cap.offset = val;
   SetCapOffsetResult result = { 1, cap };
   return result;
 };
 
-SetCapBoundsResult set_cap_bounds(capability_t cap, uint64_t newBase, uint64_t newTop) {
+SetCapBoundsResult inline set_cap_bounds(capability_t cap, uint64_t newBase, uint64_t newTop) {
   cap.base = newBase;
   cap.length = newTop - newBase;
   cap.offset = 0;
@@ -151,16 +151,16 @@ SetCapBoundsResult set_cap_bounds(capability_t cap, uint64_t newBase, uint64_t n
   return result;
 };
 
-capability_t set_cap_flags(capability_t cap, uint64_t rv) {
+capability_t inline set_cap_flags(capability_t cap, uint64_t rv) {
   cap.flags = rv;
   return cap;
 }
 
-uint64_t set_cap_offsetBits(capability_t cap, uint64_t reg) { 
+uint64_t inline set_cap_offsetBits(capability_t cap, uint64_t reg) { 
   return 1;
 };
 
-SetCapAddrResult set_cap_addr(capability_t cap, uint64_t vl) {
+SetCapAddrResult inline set_cap_addr(capability_t cap, uint64_t vl) {
   capability_t new_cap = cap;
   new_cap.offset = (uint64_t)(vl);
   BOOL within_bounds = (vl >= cap.base) && (vl < cap.base + cap.length);
@@ -170,7 +170,7 @@ SetCapAddrResult set_cap_addr(capability_t cap, uint64_t vl) {
   return result;
 }
 
-CapAddrResult inc_cap_offset(capability_t cap, uint64_t reg) {
+CapAddrResult inline inc_cap_offset(capability_t cap, uint64_t reg) {
   cap.offset += reg;
   CapAddrResult addr = { 1, cap };
   return addr;
@@ -180,16 +180,16 @@ BOOL in_cap_bounds(capability_t cap, uint64_t vl, uint64_t al) {
 
 }
 
-uint64_t get_cap_base_bits(capability_t cap) {
+uint64_t inline get_cap_base_bits(capability_t cap) {
   return 1;
 }
 
-capability_t set_cap_perms(capability_t cap, uint64_t cap_perm_bits) {
+capability_t inline set_cap_perms(capability_t cap, uint64_t cap_perm_bits) {
   cap.permissions = cap_perm_bits;
   return cap;
 }
 
-capability_t set_cap_uperms(capability_t cap, uint64_t cap_perm_bits) {
+capability_t inline set_cap_uperms(capability_t cap, uint64_t cap_perm_bits) {
   cap.upermissions = cap_perm_bits;
   return cap;
 }
