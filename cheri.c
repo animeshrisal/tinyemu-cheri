@@ -254,7 +254,7 @@ BOOL capability_equals(capability_t c1, capability_t c2) {
            (c1.upermissions== c2.upermissions)&&
            (c1.flags       == c2.flags)       &&
            (c1.otype       == c2.otype)       &&
-           (c1.tag         == c2.tag)
+           (c1.tag         == c2.tag);
 }
 
 const char* cheri_reg_name(int index) {
