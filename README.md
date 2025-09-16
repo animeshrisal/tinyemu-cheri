@@ -36,7 +36,7 @@ It is currently a work in progress. This section is to document the changes.
 6. A table has been created to hold the cheri instructions
 7. The cheri code was writtem for 64-bit systems.
 8. The project includes a `kernel.elf` that was used for testing and a `uncompressed.txt` file that shows the cheri assembly code
-9. There is a test folder that contains the original c code. The test 
+9. There is a test folder that contains the original c code. The test prints a hello world using the uart and then tries to access out of bound memory.
 
 
 ### Things to do
