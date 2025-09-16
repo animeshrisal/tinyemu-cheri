@@ -7,82 +7,9 @@ This is a modified version of [Fabrice Bellard's TinyEMU][TinyEMU].
 [GitHub Actions]: https://github.com/fernandotcl/TinyEMU/actions?query=workflow%3ABuild
 [TinyEMU]: https://bellard.org/tinyemu/
 
-## Features
-
-- 32/64/128-bit RISC-V emulation.
-- VirtIO console, network, block device, input and 9P filesystem.
-- Framebuffer emulation through SDL.
-- Remote HTTP block device and filesystem.
-- Small code, easy to modify, no external dependencies.
-
-Changes from Fabrice Bellard's 2019-02-10 release:
-
-- macOS and [iOS][TinyEMU-iOS] support.
-- Support for loading ELF images.
-- Support for loading initrd images or compressed initramfs archives.
-- Framebuffer support through SDL 2 instead of 1.2.
-
-[TinyEMU-iOS]: https://github.com/fernandotcl/TinyEMU-iOS
-
-## Usage
-
-Use the VM images available from Fabrice Bellard's [jslinux][] (no need to download them):
-
-```
-$ temu https://bellard.org/jslinux/buildroot-riscv64.cfg
-
-Welcome to JS/Linux (riscv64)
-
-Use 'vflogin username' to connect to your account.
-You can create a new account at https://vfsync.org/signup .
-Use 'export_file filename' to export a file to your computer.
-Imported files are written to the home directory.
-
-[root@localhost ~]# uname -a
-Linux localhost 4.15.0-00049-ga3b1e7a-dirty #11 Thu Nov 8 20:30:26 CET 2018 riscv64 GNU/Linux
-[root@localhost ~]#
-```
-
-Use `C-a x` to exit the emulator.
-
-You can also use TinyEMU with local configuration and disks. You can find more information in Fabrice Bellard's [documentation for TinyEMU][tinyemu-readme].
-
-[jslinux]: https://bellard.org/jslinux
-[tinyemu-readme]: https://bellard.org/tinyemu/readme.txt
-
-## Installing
-
-The easiest way to install TinyEMU is through [Homebrew][]. There is a formula for TinyEMU in [my Homebrew tap][tap].
-
-[homebrew]: https://brew.sh
-[tap]: https://github.com/fernandotcl/homebrew-fernandotcl
-
-If you're compiling from source, you'll need:
-
-- [OpenSSL][] (optional)
-- [SDL 2.0][sdl] (optional)
-
-[openssl]: https://www.openssl.org
-[sdl]: https://www.libsdl.org
-
-Make sure to disable `CONFIG_INT128` for 32-bit hosts.
-
-## CHERI
-This emulator has been modified to include CHERI capabilities
-
-It is currently a work in progress. This section is to document the changes.
-
-1. A cheri.c and cheri.h file have been included that performs specific cheri operations.
-2. The riscv_cpu_template.h has been modified to run cheri instructions.
-3. A table has been created to hold the cheri instructions
-4. The cheri code was writtem for 64-bit systems.
-5. The project includes a `kernel.elf` that was used for testing 
-and a `uncompressed.txt` file that shows the cheri assembly code
-6. There is a test folder that contains the origin c code.
-
 ## Credits
 
-TinyEMU was created by [Fabrice Bellard][fabrice]. This port is maintained by [Fernando Tarlá Cardoso Lemos][fernando].
+TinyEMU was created by [Fabrice Bellard][fabrice]. Forked from [Fernando Tarlá Cardoso Lemos][fernando].
 
 [fabrice]: https://bellard.org
 [fernando]: mailto:fernandotcl@gmail.com
@@ -92,3 +19,31 @@ TinyEMU was created by [Fabrice Bellard][fabrice]. This port is maintained by [F
 Unless otherwise specified in individual files, TinyEMU is available under the MIT license.
 
 The SLIRP library has its own license (two-clause BSD license).
+
+
+## CHERI
+This emulator has been modified to include CHERI capabilities
+
+It is currently a work in progress. This section is to document the changes.
+
+
+### Things done
+1. Write most of the opcodes. There is a single line comment for each implemented opcode for easier search.
+2. A cheri.c and cheri.h file have been included that performs specific cheri operations.
+3. Write and read capabilities from memory. At the moment, the capabilities are stored in a table
+4. Added some cheri state to `RiscVCPUState` struct in `riscv_cpu_priv.h` 
+5. The riscv_cpu_template.h has been modified to run cheri instructions.
+6. A table has been created to hold the cheri instructions
+7. The cheri code was writtem for 64-bit systems.
+8. The project includes a `kernel.elf` that was used for testing and a `uncompressed.txt` file that shows the cheri assembly code
+9. There is a test folder that contains the original c code. The test 
+
+
+### Things to do
+1. Some code needs to be writte for some function. All of them are commented with 
+`TODO`
+2. Fix `mret`. When mret is executed, the code loop is finished and returns to the previous function. But the program crashes when returning to the previous function.
+
+### How to run
+`./temu test.cfg`
+

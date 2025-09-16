@@ -442,7 +442,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         cd = rd;
         uint64_t offset = (insn >> 12) & 0x7;
 
-        // TODO: Read from elf file
+        // TODO: Read from elf file to get actual data
         if(GET_PC() == 0x800001bc) {
             capability_t cap1;
             cap1.base = 0x80001120;
@@ -454,7 +454,7 @@ static void no_inline glue(riscv_cpu_interp_x, XLEN)(RISCVCPUState *s,
         switch(opcode) {
             // Read capability 
             case 0x5b:
-                uint32_t high_bits =(insn >> 25) & 0x7f;
+                uint32_t high_bits = (insn >> 25) & 0x7f;
 
                 capability_t c = s->cap[cs1];
 

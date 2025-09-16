@@ -184,7 +184,7 @@ BOOL in_cap_bounds(capability_t cap, uint64_t vl, uint64_t al) {
 }
 
 uint64_t inline get_cap_base_bits(capability_t cap) {
-  //TODO
+  // TODO
   return 1;
 }
 
@@ -244,6 +244,8 @@ uint8_t handle_mem_exception(uint64_t xlenbits, ExceptionType type) {
 // TODO
 }
 
+
+// Check if two capabilities are equal
 BOOL capability_equals(capability_t c1, capability_t c2) {
     return (c1.base        == c2.base)        &&
            (c1.length      == c2.length)      &&
@@ -252,8 +254,7 @@ BOOL capability_equals(capability_t c1, capability_t c2) {
            (c1.upermissions== c2.upermissions)&&
            (c1.flags       == c2.flags)       &&
            (c1.otype       == c2.otype)       &&
-           (c1.tag         == c2.tag)         &&
-           (c1._cap_cursor == c2._cap_cursor);
+           (c1.tag         == c2.tag)
 }
 
 const char* cheri_reg_name(int index) {
