@@ -45,5 +45,6 @@ It is currently a work in progress. This section is to document the changes.
 2. Fix `mret`. When mret is executed, the code loop is finished and returns to the previous function. But the program crashes when returning to the previous function.
 
 ### How to run
+`make`
 `./temu test.cfg`
 
