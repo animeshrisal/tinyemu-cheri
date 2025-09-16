@@ -43,6 +43,7 @@ It is currently a work in progress. This section is to document the changes.
 1. Some code needs to be writte for some function. All of them are commented with 
 `TODO`
 2. Fix `mret`. When mret is executed, the code loop is finished and returns to the previous function. But the program crashes when returning to the previous function.
+3. Read the capability data from elf file instead of being hardcoded.
 
 ### How to run
 `make`
